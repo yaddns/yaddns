@@ -35,7 +35,7 @@ char ip_currently_updated[16];
 int controler_start(void)
 {
 	char wan_ip[16];
-	enum status_code up_rc;
+	int up_rc;
 
 	/* set flags */
 	service_flag = START_FLAG;

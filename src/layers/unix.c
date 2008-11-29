@@ -18,8 +18,10 @@
 
 #include "defs.h"
 #include "event.h"
+#include "util.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <syslog.h>
@@ -45,16 +47,19 @@ static const char *a_errmsg[] = {
 	"errconfig",
 };
 
+
+static void unix_signal_setup(void);
+static void unix_signal_handler(int sn, siginfo_t *si, void *se);
+static void unix_log_open(void);
+static void unix_log_close(void);
+
+static int unix_ctor(void);
+static int unix_dtor(void);
 static int unix_get_wan_ip(char *buf, size_t buf_size);
 static int unix_conf_get(const char* service_name, const char* conf_name,  char *buf, size_t buf_size);
 static int unix_conf_reload(void);
 static int unix_log(int level, const char *fmt, ...);
 static int unix_publish_status_code(const char* service_name, int codeno);
-static int unix_ctor(void);
-static int unix_dtor(void);
-
-static void unix_signal_setup(void);
-static void unix_signal_handler(int sn, siginfo_t *si, void *se);
 
 struct layer unix_layer = {
 	.ctor = unix_ctor,
@@ -97,8 +102,10 @@ static void unix_signal_setup(void)
 	}
 }
 
-static void unix_signal_handler(int sn, siginfo_t *si, void *se __attribute__((unused)))
+static void unix_signal_handler(int sn, siginfo_t *si, void *se)
 {
+	UNUSED(se);
+	
 	switch (sn)
 	{
 	case SIGSEGV:
@@ -133,10 +140,28 @@ static void unix_signal_handler(int sn, siginfo_t *si, void *se __attribute__((u
 		break;
 		
 	case SIGUSR1:
-		LAYER_LOG_NOTICE("SIGUSR1 received, unblock sleep ^^");
+		LAYER_LOG_NOTICE("SIGUSR1 received, unblock sleep");
 		break;
-
+		
+	default:
+		LAYER_LOG_ERROR("Signal %d received but not processed", sn);
+		break;
+		
 	}
+}
+
+static void unix_log_open(void)
+{
+	openlog(D_NAME, LOG_PID, LOG_DAEMON);
+      
+	return;
+}
+
+static void unix_log_close(void)
+{
+	closelog();
+
+	return;
 }
 
 /*
@@ -144,13 +169,20 @@ static void unix_signal_handler(int sn, siginfo_t *si, void *se __attribute__((u
  */
 static int unix_ctor(void)
 {
+	/* setup signals handler */
 	unix_signal_setup();
-	
+
+	/* open log */
+	unix_log_open();
+
 	return 0;
 }
 
 static int unix_dtor(void)
 {
+	/* close log */
+	unix_log_close();
+
 	return 0;
 }
 
@@ -161,13 +193,11 @@ static int unix_get_wan_ip(char *buf, size_t buf_size)
 	return 0;
 }
 
-static int unix_conf_get(const char* service_name, const char* conf_name,  char *buf, size_t buf_size)
+static int unix_conf_get(const char* service_name, const char* conf_name,  char* buf, size_t buf_size)
 {
-	char *val = NULL;
+	char* val = NULL;
 	int ret = 0;
 	
-	/* static test
-	 */
 	if(strcmp(service_name, "dyndns") == 0)
 	{
 		if(strcmp(conf_name, "username") == 0)
@@ -205,10 +235,12 @@ static int unix_conf_reload(void)
 	return 0;
 }
 
-static int unix_log(int level __attribute__((unused)), const char *fmt, ...)
+static int unix_log(int level, const char *fmt, ...)
 {
 	va_list args;
 
+	UNUSED(level);
+	
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
@@ -219,7 +251,7 @@ static int unix_log(int level __attribute__((unused)), const char *fmt, ...)
 
 static int unix_publish_status_code(const char* service_name, int codeno)
 {
-	printf("### STATUS %s service: (%d) %s\n", service_name, codeno, a_errmsg[codeno]);
+	printf("STATUS %s service: (%d) %s\n", service_name, codeno, a_errmsg[codeno]);
 	
 	return 0;
 }

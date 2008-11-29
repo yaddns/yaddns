@@ -21,9 +21,13 @@
 
 #include "defs.h"
 #include "controler.h"
+#include "util.h"
 
 int main(int argc, char **argv)
 {
+	UNUSED(argc);
+	UNUSED(argv);
+	
 	layer->ctor();
 	LAYER_LOG_INFO("starting");
 	

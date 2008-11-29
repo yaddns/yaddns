@@ -18,6 +18,8 @@
 
 #include "util.h"
 
+#include <stdlib.h>
+
 int util_base64_encode(const char *src, char **output, size_t *output_size)
 {
 	static char tbl[64] = {

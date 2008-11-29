@@ -17,6 +17,7 @@
  */
 
 #include "defs.h"
+#include "util.h"
 
 #include <unistd.h>
 #include <string.h>
@@ -25,8 +26,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
-#include "util.h"
 
 /*
  * This dyndns client is inspired by updatedd dyndns service client
@@ -67,7 +66,7 @@ static char _internal_buffer[1024];
 
 static int dyndns_ctor(void);
 static int dyndns_dtor(void);
-static enum status_code dyndns_update(const char *wan_ip);
+static int dyndns_update(const char *wan_ip);
 
 static int dyndns_connect(void);
 static int dyndns_disconnect(int s);
@@ -89,7 +88,7 @@ static int dyndns_dtor(void)
 	return 0;
 }
 
-static enum status_code dyndns_update(const char *wan_ip)
+static int dyndns_update(const char *wan_ip)
 {
 	int s, ret, n;
 	char login[128], password[128], hostname[256];
@@ -133,7 +132,7 @@ static enum status_code dyndns_update(const char *wan_ip)
 		 " HTTP/1.1\r\n"
 		 "Host: " DYNDNS_HOST "\r\n"
 		 "Authorization: Basic %s\r\n"
-		 "User-Agent: " NAME "/" VERSION " - " INFO "\r\n"
+		 "User-Agent: " D_NAME "/" D_VERSION " - " D_INFO "\r\n"
 		 "Connection: close\r\n"
 		 "Pragma: no-cache\r\n\r\n",
 		 hostname,
@@ -205,8 +204,8 @@ static enum status_code dyndns_update(const char *wan_ip)
 
 static int dyndns_connect(void)
 {
-	struct  sockaddr_in addr;
-        struct  hostent *host;
+	struct sockaddr_in addr;
+        struct hostent *host;
         int s;
 
         if((host = gethostbyname(DYNDNS_HOST)) == NULL) 
@@ -215,9 +214,9 @@ static int dyndns_connect(void)
 		return -1;
         }
 
-        addr.sin_family =       AF_INET;
-        addr.sin_port   =       htons(DYNDNS_PORT);
-        addr.sin_addr   =       *(struct in_addr*)host->h_addr;
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(DYNDNS_PORT);
+        addr.sin_addr = *(struct in_addr*)host->h_addr;
 
         s = socket(AF_INET, SOCK_STREAM, 0);
         if(s == -1) 
@@ -226,7 +225,7 @@ static int dyndns_connect(void)
                 return -1;
         }
 
-        if(connect(s, (struct sockaddr*)&addr, sizeof(addr)) == -1) 
+        if(connect(s, (struct sockaddr*)&addr, (socklen_t)sizeof(addr)) == -1) 
 	{
 		LAYER_LOG_ERROR("connect() failed %m");
                 return -1;

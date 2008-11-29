@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _DEFS_H_
-#define _DEFS_H_
+#ifndef _YADDNS_DEFS_H_
+#define _YADDNS_DEFS_H_
 
 #include <string.h>
 #include <sys/types.h>
@@ -34,18 +34,45 @@ enum ll_code {
   ll_debug,
 };
 
-#define LAYER_LOG_FATAL(msg, ...) layer->log(ll_fatal, msg, ##__VA_ARGS__)
-#define LAYER_LOG_ERROR(msg, ...) layer->log(ll_err, msg, ##__VA_ARGS__)
-#define LAYER_LOG_WARN(msg, ...) layer->log(ll_warn, msg, ##__VA_ARGS__)
+#define LAYER_LOG_FATAL(msg, ...)				\
+	do							\
+	{							\
+		layer->log(ll_fatal, msg, ##__VA_ARGS__);	\
+	} while(0)
+#define LAYER_LOG_ERROR(msg, ...)				\
+	do							\
+	{							\
+		layer->log(ll_err, msg, ##__VA_ARGS__);		\
+	} while(0)
+#define LAYER_LOG_WARN(msg, ...)				\
+	do							\
+	{							\
+		layer->log(ll_warn, msg, ##__VA_ARGS__);	\
+	} while(0)
 
 #ifdef DEBUG
-#define LAYER_LOG_DEBUG(msg, ...) layer->log(ll_debug,msg, ##__VA_ARGS__)
+#define LAYER_LOG_DEBUG(msg, ...)				\
+	do							\
+	{							\
+		layer->log(ll_debug, msg, ##__VA_ARGS__);	\
+	} while(0)
 #else
-#define LAYER_LOG_DEBUG(msg, ...) do {;} while(0)
+#define LAYER_LOG_DEBUG(msg, ...) \
+	do			  \
+	{;			  \
+	} while(0)
 #endif
 
-#define LAYER_LOG_NOTICE(msg, ...) layer->log(ll_notice, msg, ##__VA_ARGS__)
-#define LAYER_LOG_INFO(msg, ...) layer->log(ll_info, msg, ##__VA_ARGS__)
+#define LAYER_LOG_INFO(msg, ...)				\
+	do							\
+	{							\
+		layer->log(ll_info, msg, ##__VA_ARGS__);	\
+	} while(0)
+#define LAYER_LOG_NOTICE(msg, ...)				\
+	do							\
+	{							\
+		layer->log(ll_notice, msg, ##__VA_ARGS__);	\
+	} while(0)
 
 /*
  * code returned in service function
@@ -74,9 +101,9 @@ typedef struct layer {
 	int (*ctor) (void); /* construtor */
 	int (*dtor) (void); /* destructor */
 	int (*get_wan_ip) (char*, size_t); /* return the current wan ip address */
-	int (*conf_get) (const char *, const char *, char *buf, size_t buf_size); /* return the wanted value in config */
+	int (*conf_get) (const char *, const char *, char *, size_t); /* return the wanted value in config */
 	int (*conf_reload) (void); /* reload conf */
-	int (*log) (int, const char *, ...) __attribute__ ( ( __format__( __printf__, 2, 3 ) ) ); /* log */
+	int (*log) (int, const char *, ...); /* log */
 	int (*publish_status_code) (const char *, int); /* callback to show status of program to user with return code of layer and service */
 } layer_t;
 
@@ -84,7 +111,7 @@ typedef struct service {
 	const char* name;
 	int (*ctor) (void);
 	int (*dtor) (void);
-	enum status_code (*update) (const char *); /* arg1: wan ip. */
+	int (*update) (const char *); /* arg1: wan ip. */
 } service_t;
 
 extern layer_t *layer;

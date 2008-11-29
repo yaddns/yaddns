@@ -1,7 +1,7 @@
 # custom vars
 TGT		:= yaddns
 VERSION		:= 0.1
-INFO		:= "\"http://gna.org/projects/yaddns\""
+INFO		:= http://gna.org/projects/yaddns
 
 SERVICE		?= dyndns
 LAYER		?= unix
@@ -11,13 +11,14 @@ INC_DIRS	?= $(stagingdir)/include $(stagingdir)/usr/include
 LIBS_DIRS	?= $(stagingdir)/lib $(stagingdir)/usr/lib
 
 # global vars
-CFLAGS		+= $(FPIC) -std=gnu99 -D_GNU_SOURCE \
-		   -D__USER__="\"$(USER)\"" -D__HOST__="\"$(shell hostname)\"" \
-		   -DNAME="\"$(TGT)\"" -DVERSION="\"$(VERSION)\"" \
-                   -DINFO=$(INFO) \
-		   -Wall -Wextra -O -Wwrite-strings -Wstrict-prototypes -Wuninitialized \
-		   -Wunreachable-code \
-		   -Wno-missing-braces  -Wno-missing-field-initializers \
+CFLAGS		+= -DD_NAME="\"$(TGT)\"" -DD_VERSION="\"$(VERSION)\"" \
+                   -DD_INFO="\"$(INFO)\"" \
+		   $(FPIC) -std=gnu99 -D_GNU_SOURCE \
+		   -Wall -Wextra -Werror -Wbad-function-cast -Wshadow \
+		   -Wcast-qual -Wold-style-definition -Wmissing-noreturn \
+		   -Wstrict-prototypes -Waggregate-return -Wformat=2 \
+		   -Wswitch-default -Wundef -Wbad-function-cast -Wconversion \
+		   -Wunused-parameter -Wunsafe-loop-optimizations -Wpointer-arith \
 		   -I./include \
 		   $(foreach dir, $(INC_DIRS), -I$(dir))
 LDFLAGS		+= -Wall $(foreach dir, $(LIBS_DIRS), -L$(dir))
@@ -25,8 +26,10 @@ LDLIBS		+= $(EXTRA_LIBS)
 
 ifeq ($(MODE), debug)
 MAKEFLAGS	+= 'DEBUG=y'
-CFLAGS		+= -g -DDEBUG 
-LDFLAGS		+= -Wall
+CFLAGS		+= -g -DDEBUG
+else
+MAKEFLAGS	+=
+CFLAGS		+= -Os -fomit-frame-pointer -DNDEBUG
 endif
 
 INSTALL		?= /usr/bin/install

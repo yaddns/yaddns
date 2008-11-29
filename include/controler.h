@@ -16,10 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CONTROLER_H_
-#define _CONTROLER_H_
-
-#include "defs.h"
+#ifndef _YADDNS_CONTROLER_H_
+#define _YADDNS_CONTROLER_H_
 
 extern int controler_start(void);
 extern int controler_stop(void);
