@@ -188,9 +188,18 @@ static int unix_dtor(void)
 
 static int unix_get_wan_ip(char *buf, size_t buf_size)
 {
-	snprintf(buf, buf_size, "80.151.25.62");
+	int ret = -1;
 	
-	return 0;
+	char *wan_ip = getenv("WAN_IP");
+	
+	if(wan_ip)
+	{
+		snprintf(buf, buf_size, "%s", wan_ip);
+		ret = 0;
+		
+	}
+	
+	return ret;
 }
 
 static int unix_conf_get(const char* service_name, const char* conf_name,  char* buf, size_t buf_size)
