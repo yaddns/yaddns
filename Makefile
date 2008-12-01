@@ -78,8 +78,8 @@ src/service.c:
 
 .PHONY: install
 install:
-	$(INSTALL) -d $(ROOT)/
-	$(INSTALL) -m 770 $(TGT) $(ROOT)/
+	$(INSTALL) -d $(ROOT)/usr/bin
+	$(INSTALL) -m 770 $(TGT) $(ROOT)/usr/bin/
 
 .PHONY: clean
 clean:
