@@ -7,8 +7,6 @@ SERVICE		?= dyndns
 LAYER		?= unix
 
 EXTRA_LIBS	?= 
-INC_DIRS	?= $(stagingdir)/include $(stagingdir)/usr/include
-LIBS_DIRS	?= $(stagingdir)/lib $(stagingdir)/usr/lib
 
 # global vars
 CFLAGS		+= -DD_NAME="\"$(TGT)\"" -DD_VERSION="\"$(VERSION)\"" \
