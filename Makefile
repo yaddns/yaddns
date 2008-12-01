@@ -18,8 +18,7 @@ CFLAGS		+= -DD_NAME="\"$(TGT)\"" -DD_VERSION="\"$(VERSION)\"" \
 		   -Wswitch-default -Wundef -Wbad-function-cast -Wconversion \
 		   -Wunused-parameter -Wunsafe-loop-optimizations -Wpointer-arith \
 		   -I./include \
-		   $(foreach dir, $(INC_DIRS), -I$(dir))
-LDFLAGS		+= -Wall $(foreach dir, $(LIBS_DIRS), -L$(dir))
+LDFLAGS		+= -Wall
 LDLIBS		+= $(EXTRA_LIBS)
 
 ifeq ($(MODE), debug)
