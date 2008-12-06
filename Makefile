@@ -17,7 +17,7 @@ CFLAGS		+= -DD_NAME="\"$(TGT)\"" -DD_VERSION="\"$(VERSION)\"" \
 		   -Wstrict-prototypes -Waggregate-return -Wformat=2 \
 		   -Wswitch-default -Wundef -Wbad-function-cast -Wconversion \
 		   -Wunused-parameter -Wunsafe-loop-optimizations -Wpointer-arith \
-		   -I./include \
+		   -I./include
 LDFLAGS		+= -Wall
 LDLIBS		+= $(EXTRA_LIBS)
 
