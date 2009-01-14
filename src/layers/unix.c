@@ -81,6 +81,35 @@ static void unix_signal_setup(void)
 	sa.sa_flags = SA_SIGINFO;
 	sa.sa_sigaction = unix_signal_handler;
 
+	/*
+	 * https://www.securecoding.cert.org/
+	 *  -> SIG00-C
+	 */
+	if (sigemptyset(&sa.sa_mask) != 0) 
+	{
+		LAYER_LOG_ERROR("sigemptyset failed");
+	}
+	
+	if (sigaddset(&sa.sa_mask, SIGHUP)) 
+	{
+		LAYER_LOG_ERROR("sigaddset SIGHUP failed");
+	}
+	
+	if (sigaddset(&sa.sa_mask, SIGUSR1)) 
+	{
+		LAYER_LOG_ERROR("sigaddset SIGUSR1 failed");
+	}
+	
+	if (sigaddset(&sa.sa_mask, SIGSEGV)) 
+	{
+		LAYER_LOG_ERROR("sigaddset SIGSEGV failed");
+	}
+	
+	if (sigaddset(&sa.sa_mask, SIGTERM)) 
+	{
+		LAYER_LOG_ERROR("sigaddset SIGTERM failed");
+	}
+  
 	if(sigaction(SIGSEGV, &sa, NULL) != 0)
 	{
 		LAYER_LOG_ERROR("sigaction with SIGSEGV failed");
