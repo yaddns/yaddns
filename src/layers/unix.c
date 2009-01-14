@@ -90,6 +90,11 @@ static void unix_signal_setup(void)
 		LAYER_LOG_ERROR("sigemptyset failed");
 	}
 	
+	if (sigaddset(&sa.sa_mask, SIGTERM)) 
+	{
+		LAYER_LOG_ERROR("sigaddset SIGTERM failed");
+	}
+	
 	if (sigaddset(&sa.sa_mask, SIGHUP)) 
 	{
 		LAYER_LOG_ERROR("sigaddset SIGHUP failed");
@@ -98,16 +103,6 @@ static void unix_signal_setup(void)
 	if (sigaddset(&sa.sa_mask, SIGUSR1)) 
 	{
 		LAYER_LOG_ERROR("sigaddset SIGUSR1 failed");
-	}
-	
-	if (sigaddset(&sa.sa_mask, SIGSEGV)) 
-	{
-		LAYER_LOG_ERROR("sigaddset SIGSEGV failed");
-	}
-	
-	if (sigaddset(&sa.sa_mask, SIGTERM)) 
-	{
-		LAYER_LOG_ERROR("sigaddset SIGTERM failed");
 	}
   
 	if(sigaction(SIGSEGV, &sa, NULL) != 0)
@@ -154,7 +149,7 @@ static void unix_signal_handler(int sn, siginfo_t *si, void *se)
 		break;
 
 	case SIGTERM:
-		LAYER_LOG_NOTICE("SIGTERM received, exit \"cleanly\"");
+		LAYER_LOG_NOTICE("SIGTERM received, wait for exit \"cleanly\"");
 		event_add(EVENT_EXIT);
 		break;
 		
