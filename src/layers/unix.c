@@ -20,13 +20,21 @@
 #include "event.h"
 #include "util.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <syslog.h>
+
 #include <sys/time.h>
-#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include <signal.h>
 
@@ -212,18 +220,46 @@ static int unix_dtor(void)
 
 static int unix_get_wan_ip(char *buf, size_t buf_size)
 {
-	int ret = -1;
-	
-	char *wan_ip = getenv("WAN_IP");
-	
-	if(wan_ip)
+        /* SIOCGIFADDR struct ifreq *  */
+	int s;
+	struct ifreq ifr;
+	size_t ifrlen;
+	struct in_addr addr;
+        char *ifname = getenv("DYNDNS_WANIFNAME");
+        
+	if(!ifname || ifname[0]=='\0')
+		return -1;
+        
+	s = socket(PF_INET, SOCK_DGRAM, 0);
+	if(s < 0)
 	{
-		snprintf(buf, buf_size, "%s", wan_ip);
-		ret = 0;
-		
+		LAYER_LOG_ERROR("socket(PF_INET, SOCK_DGRAM): %m");
+		return -1;
 	}
-	
-	return ret;
+        
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_addr.sa_family = AF_INET; /* IPv4 IP address */
+	strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+	ifrlen = sizeof(ifr);
+
+	if(ioctl(s, SIOCGIFADDR, &ifr, &ifrlen) < 0)
+	{
+		LAYER_LOG_ERROR("ioctl(s, SIOCGIFADDR, ...): %m");
+		close(s);
+		return -1;
+	}
+        
+        close(s);
+        
+	addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
+
+        if(!inet_ntop(AF_INET, &addr, buf, buf_size))
+	{
+		LAYER_LOG_ERROR("inet_ntop(): %m");
+		return -1;
+	}
+        
+	return 0;
 }
 
 static int unix_conf_get(const char* service_name, const char* conf_name,  char* buf, size_t buf_size)
