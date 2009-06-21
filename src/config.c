@@ -1,12 +1,20 @@
-/* #include "config.h" */
+#include "config.h"
 
-#define CFG_IFACE            "IFACE" 
+int config_parse(int argc, char **argv)
+{
+	(void)(argc);
+	(void)(argv);
+	return 0;
+}
 
-/* static struct { */
-/* 	char *name; */
-/* 	void (*set_var) (struct config_t*, const char*); */
-/* } config_map[] = { */
-/* 	{ CFG_IFACE,  config_set_iface }, */
-/* 	{ NULL, NULL}, */
-/* }; */
+int config_parse_file(const char *filename)
+{
+	(void)(filename);
+	return 0;
+}
 
+int config_free(void)
+{
+
+	return 0;
+}

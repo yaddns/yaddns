@@ -16,8 +16,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "defs.h"
+#include "service.h"
 #include "util.h"
+#include "log.h"
 
 #include <unistd.h>
 #include <string.h>
@@ -38,94 +39,63 @@
 static struct {
 	const char *code;
 	const char *text;
-	enum status_code rc;
+	int rc;
 } return_server_codes[] = {
-	{ "badauth",	"Bad authorization (username or password).",		up_sc_badauth },
-	{ "badsys",	"The system parameter given was not valid.",		up_sc_generalerror },
+	{ "badauth",	"Bad authorization (username or password).",		-1 },
+	{ "badsys",	"The system parameter given was not valid.",		-1 },
 	{ "badagent",	"The useragent your client sent has been blocked "
-          "at the access level.",						up_sc_generalerror
+          "at the access level.",						-1
 	},
-	{ "good",	"Update good and successful, IP updated.",		up_sc_good },
-	{ "nochg",	"No changes, update considered abusive.",		up_sc_nochg },
-	{ "nohost",	"The hostname specified does not exist.",		up_sc_badhostname },
+	{ "good",	"Update good and successful, IP updated.",		-1 },
+	{ "nochg",	"No changes, update considered abusive.",		-1 },
+	{ "nohost",	"The hostname specified does not exist.",		-1 },
 	{ "!donator",	"The offline setting was set, when the user is "
-          "not a donator.",							up_sc_needcredit
+          "not a donator.",							-1
 	},
 	{ "!yours",	"The hostname specified exists, but not under "
-          "the username currently being used.",					up_sc_notyourhostname
+          "the username currently being used.",					-1
 	},
-	{ "abuse",	"The hostname specified is blocked for abuse",		up_sc_abuse },
-	{ "notfqdn",	"No hosts are given.",					up_sc_badhostname },
-	{ "numhost",	"Too many or too few hosts found.",			up_sc_badhostname },
-	{ "dnserr",	"DNS error encountered.",				up_sc_servererror },
-	{ "911",	"911 error encountered.",				up_sc_servererror },
+	{ "abuse",	"The hostname specified is blocked for abuse",		-1 },
+	{ "notfqdn",	"No hosts are given.",					-1 },
+	{ "numhost",	"Too many or too few hosts found.",			-1 },
+	{ "dnserr",	"DNS error encountered.",				-1 },
+	{ "911",	"911 error encountered.",				-1 },
 	{ NULL,		NULL,							0 }
 };
 
-static char _internal_buffer[1024];
-
-static int dyndns_ctor(void);
-static int dyndns_dtor(void);
-static int dyndns_update(const char *wan_ip);
-
-static int dyndns_connect(void);
-static int dyndns_disconnect(int s);
+static int dyndns_write(const struct servicecfg cfg, 
+			  const char const *newwanip, 
+			  char *buffer, 
+			  size_t buffer_size);
+static int dyndns_read(char *buffer, 
+		       struct upreply_report *report);
 
 struct service dyndns_service = {
 	.name = "dyndns",
-	.ctor = dyndns_ctor,
-	.dtor = dyndns_dtor,
-	.update = dyndns_update,
+	.make_up_query = dyndns_write,
+	.read_up_resp = dyndns_read,
 };
 
-static int dyndns_ctor(void)
+static int dyndns_write(const struct servicecfg cfg, 
+			const char const *newwanip, 
+			char *buffer, 
+			size_t buffer_size)
 {
-	return 0;
-}
-
-static int dyndns_dtor(void)
-{
-	return 0;
-}
-
-static int dyndns_update(const char *wan_ip)
-{
-	int s, ret, n;
-	char login[128], password[128], hostname[256];
 	char buf[256];
-	char *b64_loginpass = NULL, *ptr = NULL;
+	char *b64_loginpass = NULL;
 	size_t b64_loginpass_size;
-	
-	/* get configuration */
-	if(layer->conf_get("dyndns", "username", login, sizeof(login)) == -1) 
-	{
-		LAYER_LOG_ERROR("Unable to get login - Check your conf");
-		return fe_sc_config;
-	}
-
-	if(layer->conf_get("dyndns", "password", password, sizeof(password)) == -1) 
-	{
-		LAYER_LOG_ERROR("Unable to get password - Check your conf");
-		return fe_sc_config;
-	}
-
-	if(layer->conf_get("dyndns", "hostname", hostname, sizeof(hostname)) == -1) 
-	{
-		LAYER_LOG_ERROR("Unable to get hostname - Check your conf");
-		return fe_sc_config;
-	}
 
 	/* make the update packet */
-	snprintf(buf, sizeof(buf), "%s:%s", login, password);
+	snprintf(buf, sizeof(buf), "%s:%s", cfg.username, cfg.passwd);
 	
 	if(util_base64_encode(buf, &b64_loginpass, &b64_loginpass_size) != 0)
 	{
 		/* publish_error_status ?? */
-		LAYER_LOG_ERROR("Unable to encode in base64");
-		return fe_sc_error;
+		log_error("Unable to encode in base64");
+		return -1;
 	}
 
-	snprintf(_internal_buffer, sizeof(_internal_buffer), 
+	snprintf(buffer, buffer_size, 
 		 "GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
 		 "&myip=%s"
 		 "&backmx=NO&offline=NO"
@@ -135,112 +105,49 @@ static int dyndns_update(const char *wan_ip)
 		 "User-Agent: " D_NAME "/" D_VERSION " - " D_INFO "\r\n"
 		 "Connection: close\r\n"
 		 "Pragma: no-cache\r\n\r\n",
-		 hostname,
-		 wan_ip,
+		 cfg.hostname,
+		 newwanip,
 		 b64_loginpass);
 	
 	free(b64_loginpass);
 	
-	printf("PACKET: %s", _internal_buffer);
-	
-	/* connect */
-	s = dyndns_connect();
-	if(s == -1)
-	{
-		/* fatal error */
-		LAYER_LOG_ERROR("Unable to connect to server");
-		return wa_sc_nowan; /* TODO: NEED TO IMPROVE */
-	}
-	
-	if(write(s, _internal_buffer, strlen(_internal_buffer)) == -1) 
-	{
-		LAYER_LOG_ERROR("Write error ! %m");
-		dyndns_disconnect(s);
-		return wa_sc_nowan; /* TODO: NEED TO IMPROVE */
-	}
-	
-	/* check return */
-	if((ret = read(s, _internal_buffer, sizeof(_internal_buffer) - 1)) < 0) 
-	{
-		LAYER_LOG_ERROR("Read error ! %m");
-		dyndns_disconnect(s);
-		return wa_sc_nowan; /* TODO: NEED TO IMPROVE */
-	}
-        
-	_internal_buffer[ret] = '\0';
-	printf("Server message : \n %s\n", _internal_buffer);
+	return 0;
+}
 
-	if(strstr(_internal_buffer, "HTTP/1.1 200 OK") ||
-	   strstr(_internal_buffer, "HTTP/1.0 200 OK")) 
+static int dyndns_read(char *buffer, 
+		       struct upreply_report *report)
+{
+	int ret = 0;
+	char *ptr = NULL;
+	int f = 0;
+	int n = 0;
+	
+	report->code = -1;
+	
+	if(strstr(buffer, "HTTP/1.1 200 OK") ||
+	   strstr(buffer, "HTTP/1.0 200 OK")) 
 	{
-		ret = -1;
-		(void)strtok(_internal_buffer, "\n");
-		while(ret == -1 && (ptr = strtok(NULL, "\n")) != NULL) 
+		(void)strtok(buffer, "\n");
+		while(!f && (ptr = strtok(NULL, "\n")) != NULL) 
 		{
 			for(n = 0; return_server_codes[n].code != NULL; n++) 
 			{
 				if(strstr(ptr, return_server_codes[n].code)) 
 				{
-					ret = return_server_codes[n].rc;
+					report->code = return_server_codes[n].rc;
+					f = 1;
 					break;
 				}
 			}
 		}
 	}
-	else if(strstr(_internal_buffer, "401 Authorization Required")) 
+	else if(strstr(buffer, "401 Authorization Required")) 
 	{
-		ret = up_sc_badauth;
+		report->code = -1;
 	}
 	else 
 	{
-		ret = up_sc_servererror;
-	}
-	
-	/* disconnect */
-	dyndns_disconnect(s);
-
-	return ret;
-}
-
-static int dyndns_connect(void)
-{
-	struct sockaddr_in addr;
-        struct hostent *host;
-        int s;
-
-        if((host = gethostbyname(DYNDNS_HOST)) == NULL) 
-	{
-		LAYER_LOG_ERROR("gethostbyname() failed ! %s %d", hstrerror(h_errno), h_errno);
-		return -1;
-        }
-
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(DYNDNS_PORT);
-        addr.sin_addr = *(struct in_addr*)host->h_addr;
-
-        s = socket(AF_INET, SOCK_STREAM, 0);
-        if(s == -1) 
-	{
-                LAYER_LOG_ERROR("socket() failed %m");
-                return -1;
-        }
-
-        if(connect(s, (struct sockaddr*)&addr, (socklen_t)sizeof(addr)) == -1) 
-	{
-		LAYER_LOG_ERROR("connect() failed %m");
-                return -1;
-        }
-
-        return s;
-}
-
-static int dyndns_disconnect(int s)
-{
-	int ret;
-
-	if((ret = close(s)) != 0)
-	{
-		LAYER_LOG_ERROR("Warning, close failed %m");
+		ret = -1;
 	}
 
 	return ret;
