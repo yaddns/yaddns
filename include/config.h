@@ -1,10 +1,34 @@
 #ifndef _YADDNS_CONFIG_H_
 #define _YADDNS_CONFIG_H_
 
-extern int config_parse(int argc, char **argv);
+#include "list.h"
 
-extern int config_parse_file(const char *filename);
+enum wan_cnt_type {
+        wan_cnt_direct = 0,
+        wan_cnt_indirect,
+};
 
-extern int config_free(void);
+struct cfg {
+        int wan_cnt_type;
+        char *wan_ifname;
+        char *optionsfile;
+        struct list_head servicecfg_list;
+};
+
+struct servicecfg {
+        char *name;
+	char *username;
+	char *passwd;
+	char *hostname;
+        struct list_head list;
+};
+
+extern int config_parse(struct cfg *cfg, int argc, char **argv);
+
+extern int config_parse_file(struct cfg *cfg, const char *filename);
+
+extern int config_free(struct cfg *cfg);
+
+extern void config_print(struct cfg *cfg);
 
 #endif

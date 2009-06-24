@@ -25,7 +25,7 @@ MAKEFLAGS	+= 'DEBUG=y'
 CFLAGS		+= -g -DDEBUG
 else
 MAKEFLAGS	+=
-CFLAGS		+= -Os -fomit-frame-pointer -DNDEBUG
+CFLAGS		+= -Os -fomit-frame-pointer -DNDEBUG -DENABLE_SYSLOG
 endif
 
 INSTALL		= /usr/bin/install
@@ -76,7 +76,8 @@ install:
 .PHONY: clean
 clean:
 	find -name "*.o" -delete
-	@rm -f $(TGT)
+	rm -f src/services.c
+	rm -f $(TGT)
 
 .PHONY: mrproper
 mrproper: clean

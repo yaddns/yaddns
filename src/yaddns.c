@@ -8,6 +8,7 @@
 #include "log.h"
 
 int quitting = 0;
+int reloadconf = 0;
 
 void sighdl(int signum)
 {
@@ -16,19 +17,29 @@ void sighdl(int signum)
 		log_notice("Receive SIGTERM or SIGINT. Exit.");
 		quitting = 1;
 	}
+        else if(signum == SIGHUP)
+        {
+                log_notice("Receive SIGHUP. Reload configuration.");
+                reloadconf = 1;
+        }
+
 }
 
 int main(int argc, char **argv)
 {
 	int ret = 0;
 	struct sigaction sa;
+        struct cfg cfg;
 	
+        memset(&cfg, 0, sizeof(struct cfg));
+        
 	/* get config */
-	if(config_parse(argc, argv) != 0)
+	if(config_parse(&cfg, argc, argv) != 0)
 	{
-		log_error("Error while parsing config. EXITING.");
 		return 1;
 	}
+
+        config_print(&cfg);
 	
 	/* open log */
 	log_open();
@@ -64,7 +75,7 @@ exit_clean:
 	log_close();
 
 	/* free allocated config */
-	config_free();
+	config_free(&cfg);
 
 	return ret;
 }

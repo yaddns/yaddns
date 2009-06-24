@@ -21,37 +21,56 @@
 
 #include <syslog.h>
 
-#ifdef ENABLE_SYSLOG
-#define EOL
-#else
 #define EOL "\n"
-#endif
+
+/* colors for VT102 terminal */
+#define COLOR_ESCAPE		"\033"
+
+#define COLOR_RESET		COLOR_ESCAPE "[0m"
+
+#define COLOR_BLACK(txt)	COLOR_ESCAPE "[0;30m" txt COLOR_RESET
+#define COLOR_RED(txt)		COLOR_ESCAPE "[0;31m" txt COLOR_RESET
+#define COLOR_GREEN(txt)	COLOR_ESCAPE "[0;32m" txt COLOR_RESET
+#define COLOR_BROWN(txt)	COLOR_ESCAPE "[0;33m" txt COLOR_RESET
+#define COLOR_BLUE(txt)		COLOR_ESCAPE "[0;34m" txt COLOR_RESET
+#define COLOR_PURPLE(txt)	COLOR_ESCAPE "[0;35m" txt COLOR_RESET
+#define COLOR_CYAN(txt)		COLOR_ESCAPE "[0;36m" txt COLOR_RESET
+#define COLOR_GRAY(txt)		COLOR_ESCAPE "[0;37m" txt COLOR_RESET
+
+#define COLOR_DARK_GRAY(txt)	COLOR_ESCAPE "[1;30m" txt COLOR_RESET
+#define COLOR_LIGHT_RED(txt)	COLOR_ESCAPE "[1;31m" txt COLOR_RESET
+#define COLOR_LIGHT_GREEN(txt)	COLOR_ESCAPE "[1;32m" txt COLOR_RESET
+#define COLOR_YELLOW(txt)	COLOR_ESCAPE "[1;33m" txt COLOR_RESET
+#define COLOR_LIGHT_BLUE(txt)	COLOR_ESCAPE "[1;34m" txt COLOR_RESET
+#define COLOR_LIGHT_PURPLE(txt)	COLOR_ESCAPE "[1;35m" txt COLOR_RESET
+#define COLOR_LIGHT_CYAN(txt)	COLOR_ESCAPE "[1;36m" txt COLOR_RESET
+#define COLOR_WHITE(txt)	COLOR_ESCAPE "[1;37m" txt COLOR_RESET
 
 /*
  *  Log critical message
  */
-#define log_critical(fmt, ...)					\
-	do {							\
-		log_it(LOG_CRITICAL, "%s::%s "fmt EOL,		\
-			"critical", __func__, ##__VA_ARGS__);	\
+#define log_critical(fmt, ...)                                          \
+	do {                                                            \
+		log_it(LOG_CRITICAL, COLOR_LIGHT_RED("%s %s - " fmt EOL), \
+                       "--- CRITICAL ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 
 /*
  *  Log error message
  */
-#define log_error(fmt, ...)					\
-	do {							\
-		log_it(LOG_ERR, "%s::%s "fmt EOL,		\
-			"error", __func__, ##__VA_ARGS__);	\
+#define log_error(fmt, ...)                                             \
+	do {                                                            \
+		log_it(LOG_ERR, COLOR_RED("%s %s - " fmt EOL),		\
+			"--- ERROR ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 
 /*
  *  Log warning message
  */
-#define log_warning(fmt, ...)					\
-	do {							\
-		log_it(LOG_WARNING, "%s::%s "fmt EOL,		\
-			"warning", __func__, ##__VA_ARGS__);	\
+#define log_warning(fmt, ...)                                           \
+	do {                                                            \
+                log_it(LOG_WARNING, COLOR_PURPLE("%s %s - " fmt EOL),   \
+                       "--- warning ---", __func__, ##__VA_ARGS__);     \
 	} while (0)
 
 /*
@@ -59,8 +78,7 @@
  */
 #define log_notice(fmt, ...)					\
 	do {							\
-		log_it(LOG_NOTICE, "%s::%s "fmt EOL,		\
-			"notice", __func__, ##__VA_ARGS__);	\
+		log_it(LOG_NOTICE, fmt EOL, ##__VA_ARGS__);     \
 	} while (0)
 
 /*
@@ -68,18 +86,17 @@
  */
 #define log_info(fmt, ...)					\
 	do {							\
-		log_it(LOG_INFO, "%s::%s "fmt EOL,		\
-			"info", __func__, ##__VA_ARGS__);	\
+		log_it(LOG_INFO, fmt EOL, ##__VA_ARGS__);	\
 	} while (0)
 
 /*
  *  Log debug message
  */
 #ifdef DEBUG
-#define log_debug(fmt, ...)					\
-	do {							\
-		log_it(LOG_DEBUG, "%s::%s "fmt EOL,		\
-			"debug", __func__, ##__VA_ARGS__);	\
+#define log_debug(fmt, ...)                                             \
+	do {                                                            \
+                log_it(LOG_DEBUG, COLOR_BLUE("%s %s - " fmt EOL),       \
+                       "--- DEBUG ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 #else
 #define log_debug(fmt, ...)
