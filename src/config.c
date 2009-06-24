@@ -7,6 +7,8 @@
 
 #include "config.h"
 #include "log.h"
+#include "ctl.h"
+#include "service.h"
 
 #define CFG_DEFAULT_FILENAME "/etc/yaddns.conf"
 
@@ -176,6 +178,7 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
 int config_parse(struct cfg *cfg, int argc, char **argv)
 {
         int optionsfile_flag = 0;
+        struct service *service = NULL;
         
         int c, ind;
         char short_options[] = "vhlf:";
@@ -202,7 +205,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         printf(" -f, --cfg=FILE\t\tConfig file to be used\n");
                         printf(" -h, --help\t\tDisplay this help\n");
                         printf(" -l, --list-service\tDisplay the "
-                               "service list managed by " D_NAME "\n");
+                               "list of available services\n");
                         printf(" -v, --version\t\tDisplay the version\n");
                         return -1;
                         
@@ -211,7 +214,12 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         return -1;
 
                 case 'l':
-                        log_info("services listing /!\\ TODO /!\\");
+                        printf("List of available services:\n");
+                        list_for_each_entry(service,
+                                            &service_list, list) 
+                        {
+                                printf("  - %s\n", service->name);
+                        }
                         return -1;
                         
                 case 'f':

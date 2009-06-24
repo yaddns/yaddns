@@ -6,6 +6,7 @@
 
 #include "config.h"
 #include "log.h"
+#include "ctl.h"
 
 int quitting = 0;
 int reloadconf = 0;
@@ -31,15 +32,15 @@ int main(int argc, char **argv)
 	struct sigaction sa;
         struct cfg cfg;
 	
-        memset(&cfg, 0, sizeof(struct cfg));
+        /* init */
+        services_populate_list();
         
-	/* get config */
+	/* config */
+        memset(&cfg, 0, sizeof(struct cfg));
 	if(config_parse(&cfg, argc, argv) != 0)
 	{
 		return 1;
 	}
-
-        config_print(&cfg);
 	
 	/* open log */
 	log_open();
@@ -58,6 +59,13 @@ int main(int argc, char **argv)
 	if(sigaction(SIGINT, &sa, NULL) != 0)
 	{
 		log_error("Failed to install signal handler for SIGINT: %m");
+		ret = 1;
+		goto exit_clean;
+	}
+        
+        if(sigaction(SIGHUP, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGHUP: %m");
 		ret = 1;
 		goto exit_clean;
 	}

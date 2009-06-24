@@ -4,14 +4,7 @@
 #include <string.h>
 
 #include "list.h"
-
-/* NEED TO MOVE servicecfg ! */
-struct servicecfg {
-        char *name;
-	char *username;
-	char *passwd;
-	char *hostname;
-};
+#include "config.h"
 
 struct upreply_report {
 	int code;
@@ -20,7 +13,6 @@ struct upreply_report {
 };
 
 struct service {
-	struct list_head list;
 	const char const *name;
 	const char const *ipserv;
         const char const *portserv;
@@ -32,6 +24,7 @@ struct service {
 			      size_t buffer_size);
 	int (*read_up_resp) (char *resp,
 			     struct upreply_report *report);
+	struct list_head list;
 };
 
 #endif
