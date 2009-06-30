@@ -254,7 +254,11 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         }
 
         /* check if there service defined */
-        
+        if(list_empty(&(cfg->servicecfg_list)))
+        {
+                log_warning("No service defined.");
+        }
+
 	return 0;
 }
 

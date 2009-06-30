@@ -19,6 +19,7 @@
 #include "util.h"
 
 #include <stdlib.h>
+#include <sys/sysinfo.h>
 
 int util_base64_encode(const char *src, char **output, size_t *output_size)
 {
@@ -65,4 +66,14 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 	*p = '\0';
 	
 	return 0;
+}
+
+void util_getuptime(struct timeval *tv)
+{
+        struct sysinfo si;
+
+	sysinfo( &si );
+
+	tv->tv_sec = si.uptime;
+	tv->tv_usec = 0;
 }

@@ -15,7 +15,7 @@ struct upreply_report {
 struct service {
 	const char const *name;
 	const char const *ipserv;
-        const char const *portserv;
+        short int portserv;
 	int (*ctor) (void);
 	int (*dtor) (void);
 	int (*make_up_query) (const struct servicecfg cfg, 

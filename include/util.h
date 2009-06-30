@@ -20,6 +20,7 @@
 #define _YADDNS_UTIL_H_
 
 #include <string.h>
+#include <sys/time.h>
 
 #define UNUSED(x) ( (void)(x) )
 
@@ -29,5 +30,10 @@
  * @return 0 if success, -1 otherwise
  */
 extern int util_base64_encode(const char *src, char **output, size_t *output_size);
+
+/*
+ * Get system uptime
+ */
+extern void util_getuptime(struct timeval *tv);
 
 #endif

@@ -51,7 +51,7 @@
  */
 #define log_critical(fmt, ...)                                          \
 	do {                                                            \
-		log_it(LOG_CRITICAL, COLOR_LIGHT_RED("%s %s - " fmt EOL), \
+		log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt EOL), \
                        "--- CRITICAL ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 

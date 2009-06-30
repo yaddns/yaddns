@@ -7,6 +7,7 @@
 #include "config.h"
 #include "log.h"
 #include "ctl.h"
+#include "util.h"
 
 int quitting = 0;
 int reloadconf = 0;
@@ -31,8 +32,14 @@ int main(int argc, char **argv)
 	int ret = 0;
 	struct sigaction sa;
         struct cfg cfg;
-	
+
+        struct timeval timeout = {0, 0}, timeofday, lasttimeofday = {0, 0};
+        struct servicectl *servicectl = NULL;
+	fd_set readset, writeset;
+	int max_fd = -1;
+        
         /* init */
+        ctl_init();
         services_populate_list();
         
 	/* config */
@@ -70,13 +77,83 @@ int main(int argc, char **argv)
 		goto exit_clean;
 	}
 
-	/* init service */
-	
+        /* create ctl */
+        if(ctl_service_mapcfg(&cfg) != 0)
+        {
+                ret = 1;
+                goto exit_clean;
+        }
+        
 	/* yaddns loop */
 	while(!quitting)
 	{
-		sleep(5);
+                max_fd = 0;
+                
+                util_getuptime(&timeofday);
+                timeout.tv_sec = 15;
+                
+                /* unfreeze services ? */
+                list_for_each_entry(servicectl,
+                                    &servicectl_list, list)
+                {
+                        if(!servicectl->freezed)
+                        {
+                                continue;
+                        }
+                        
+                        if(timeofday.tv_sec - servicectl->freeze_time.tv_sec 
+                           >= servicectl->freeze_interval.tv_sec)
+                        {
+                                /* unfreeze ! */
+                                servicectl->freezed = 0;
+                        }
+                }
+
+                /* wan ip has changed ? */
+                ctl_preselect(&cfg);
+
+                /* select sockets ready to fight */
+		FD_ZERO(&readset);
+                FD_ZERO(&writeset);
+                
+                ctl_selectfds(&readset, &writeset, &max_fd);
+                
+                /* select */
+                log_debug("select !");
+                
+                if(select(max_fd + 1, &readset, &writeset, 0, &timeout) < 0)
+                {
+                        /* error or interuption */
+                        
+                        if(quitting)
+                        {
+                                break;
+                        }
+                        
+                        if(reloadconf)
+                        {
+                                /* TODO */
+                                log_debug("Reloading configuration");
+                                reloadconf = 0;
+                        }
+
+                        /* TODO, very serious cause of error */
+                        log_critical("select failed ! %m");
+                        ret = 1;
+                        break;
+                }
+
+                /* there are informations to read ? */
+                ctl_processfds(&readset, &writeset);
+
+                /* save last timeofday */
+                memcpy(&lasttimeofday, &timeofday, sizeof(struct timeval));
 	}
+
+        log_debug("cleaning before exit");
+        
+        /* free ctl */
+        ctl_free();
 
 exit_clean:
 	/* close log */
