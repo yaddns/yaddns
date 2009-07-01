@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 
 #include "ctl.h"
 #include "log.h"
@@ -33,13 +34,18 @@ static void ctl_process_send(struct updatepkt *updatepkt)
 {
         ssize_t i;
 
+        log_debug("send on %d: %.*s",
+                  updatepkt->s,
+                  updatepkt->buf_tosend - updatepkt->buf_sent,
+                  updatepkt->buf + updatepkt->buf_sent);
+        
         i = send(updatepkt->s,
                  updatepkt->buf + updatepkt->buf_sent,
                  updatepkt->buf_tosend - updatepkt->buf_sent,
                  0);
         if(i < 0)
         {
-                log_error("send(): %m");
+                log_error("send(): %d %m", errno);
                 return;
         }
         else if(i != (updatepkt->buf_tosend - updatepkt->buf_sent))
@@ -155,6 +161,9 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 		goto exit_error;
         }
 
+#if 1
+        UNUSED(addr);
+#else
         if(bind(updatepkt->s, 
                 (struct sockaddr *)addr, 
                 (socklen_t)sizeof(struct sockaddr_in)) < 0)
@@ -162,7 +171,8 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 		log_error("bind(): %m");
 		goto exit_error;
 	}
-        
+#endif
+   
         log_debug("updatepkt created: %p", updatepkt);
         
         list_add(&(updatepkt->list), &updatepkt_list);
@@ -182,11 +192,20 @@ exit_error:
 static void ctl_connect(struct updatepkt *updatepkt)
 {
 	struct sockaddr_in addr;
+        struct hostent *host = NULL;
         
         memset(&addr, 0, sizeof(struct sockaddr_in));
         
+        if((host = gethostbyname(updatepkt->ctl->def->ipserv)) == NULL)
+        {
+                log_error("gethostbyname() failed ! %s %d", 
+                          hstrerror(h_errno), h_errno);
+                updatepkt->state = EError;
+                return;
+        }
+
         addr.sin_family = AF_INET;
-        inet_aton(updatepkt->ctl->def->ipserv, &addr.sin_addr);
+        addr.sin_addr = *(struct in_addr*)host->h_addr;
         addr.sin_port = htons(updatepkt->ctl->def->portserv);
 
         log_debug("connecting to %s:%d", 
@@ -262,7 +281,7 @@ void ctl_preselect(struct cfg *cfg)
         struct in_addr curr_wanip;
         struct servicectl *servicectl = NULL;
         struct updatepkt *updatepkt = NULL;
-        char buf[32];
+        char buf_wanip[32];
         
         /* TODO: indirect mode */
         /* TODO: need to retry service no updated too */
@@ -287,7 +306,7 @@ void ctl_preselect(struct cfg *cfg)
         }
         
         /* wan ip ! */
-        if(!inet_ntop(AF_INET, &wanip, buf, sizeof(buf)))
+        if(!inet_ntop(AF_INET, &wanip, buf_wanip, sizeof(buf_wanip)))
         {
                 log_error("inet_ntop(): %m");
                 return;
@@ -314,11 +333,18 @@ void ctl_preselect(struct cfg *cfg)
                                 updatepkt->ctl = servicectl;
                                 
                                 /* call service update maker */
-                                servicectl->def->make_up_query(*(servicectl->cfg),
-                                                               buf,
-                                                               updatepkt->buf,
-                                                               sizeof(updatepkt->buf));
-                                
+                                if(servicectl->def->make_up_query(*(servicectl->cfg),
+                                                                  buf_wanip,
+                                                                  updatepkt->buf,
+                                                                  sizeof(updatepkt->buf)) != 0)
+                                {
+                                        updatepkt->state = EError;
+                                        continue;
+                                }
+
+                                updatepkt->buf_tosend = strlen(updatepkt->buf);
+
+                                log_debug("+++ pkt: %s", updatepkt->buf);
                                 servicectl->status = SUpdating;
                         }
                 }
