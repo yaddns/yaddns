@@ -39,28 +39,64 @@
 static struct {
 	const char *code;
 	const char *text;
-	int rc;
-} return_server_codes[] = {
-	{ "badauth",	"Bad authorization (username or password).",		-1 },
-	{ "badsys",	"The system parameter given was not valid.",		-1 },
-	{ "badagent",	"The useragent your client sent has been blocked "
-          "at the access level.",						-1
-	},
-	{ "good",	"Update good and successful, IP updated.",		-1 },
-	{ "nochg",	"No changes, update considered abusive.",		-1 },
-	{ "nohost",	"The hostname specified does not exist.",		-1 },
-	{ "!donator",	"The offline setting was set, when the user is "
-          "not a donator.",							-1
-	},
-	{ "!yours",	"The hostname specified exists, but not under "
-          "the username currently being used.",					-1
-	},
-	{ "abuse",	"The hostname specified is blocked for abuse",		-1 },
-	{ "notfqdn",	"No hosts are given.",					-1 },
-	{ "numhost",	"Too many or too few hosts found.",			-1 },
-	{ "dnserr",	"DNS error encountered.",				-1 },
-	{ "911",	"911 error encountered.",				-1 },
-	{ NULL,		NULL,							0 }
+	int unified_rc;
+        int lock;
+        int freeze;
+        int freezetime;
+} rc_map[] = {
+	{ "badauth", 
+          "Bad authorization (username or password).", 
+          up_account_loginpass_error, 
+          1, 0, 0 },
+	{ "badsys", 
+          "The system parameter given was not valid.",
+          up_syntax_error,
+          1, 0, 0 },
+	{ "badagent", 
+          "The useragent your client sent has been  blocked at the access level.",
+          up_syntax_error,
+          1, 0, 0 },
+	{ "good", 
+          "Update good and successful, IP updated.", 
+          up_success,
+          0, 0, 0 },
+	{ "nochg", 
+          "No changes. IP updated.", 
+          up_success,
+          0, 0, 0 },
+	{ "nohost",
+          "The hostname specified does not exist.",
+          up_account_hostname_error,
+          1, 0, 0 },
+	{ "!donator", 
+          "The offline setting was set, when the user is not a donator.",
+          up_account_error,
+          1, 0, 0 },
+	{ "!yours", 
+          "The hostname specified exists, but not under the username currently being used.",
+          up_account_hostname_error,
+          1, 0, 0 },
+	{ "abuse", 
+          "The hostname specified is blocked for abuse",
+	  up_account_abuse_error,
+          1, 0, 0 },
+	{ "notfqdn",  
+          "No hosts are given.",
+          up_account_hostname_error,
+          1, 0, 0 },
+	{ "numhost",  
+          "Too many or too few hosts found.",
+          up_account_hostname_error,
+          1, 0, 0 },
+	{ "dnserr",   
+          "DNS error encountered.",
+          up_server_error,
+          0, 1, 3600 },
+	{ "911", 
+          "911 error encountered.",
+          up_server_error,
+          0, 1, 3600 },
+	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
 static int dyndns_write(const struct servicecfg cfg, 
@@ -124,7 +160,7 @@ static int dyndns_read(char *buffer,
 	int f = 0;
 	int n = 0;
 	
-	report->code = -1;
+	report->code = up_unknown_error;
 	
 	if(strstr(buffer, "HTTP/1.1 200 OK") ||
 	   strstr(buffer, "HTTP/1.0 200 OK")) 
@@ -132,24 +168,47 @@ static int dyndns_read(char *buffer,
 		(void)strtok(buffer, "\n");
 		while(!f && (ptr = strtok(NULL, "\n")) != NULL) 
 		{
-			for(n = 0; return_server_codes[n].code != NULL; n++) 
+			for(n = 0; rc_map[n].code != NULL; n++) 
 			{
-				if(strstr(ptr, return_server_codes[n].code)) 
+				if(strstr(ptr, rc_map[n].code)) 
 				{
-					report->code = return_server_codes[n].rc;
+					report->code = rc_map[n].unified_rc;
+                                        snprintf(report->custom_rc,
+                                                 sizeof(report->custom_rc),
+                                                 "%s",
+                                                 ptr);
+                                        snprintf(report->custom_rc_text,
+                                                 sizeof(report->custom_rc_text),
+                                                 "%s",
+                                                 rc_map[n].text);
+                                        report->rcmd_lock = rc_map[n].lock;
+                                        report->rcmd_freeze = rc_map[n].freeze;
+                                        report->rcmd_freezetime 
+                                                = rc_map[n].freezetime;
+                                        
 					f = 1;
 					break;
 				}
 			}
 		}
+
+                if(!f)
+                {
+                        log_notice("Unknown return message received.");
+                        report->rcmd_lock = 1;
+                }
 	}
 	else if(strstr(buffer, "401 Authorization Required")) 
 	{
-		report->code = -1;
+		report->code = up_account_error;
+                report->rcmd_freeze = 1;
+                report->rcmd_freezetime = 3600;
 	}
 	else 
 	{
-		ret = -1;
+		report->code = up_server_error;
+                report->rcmd_freeze = 1;
+                report->rcmd_freezetime = 3600;
 	}
 
 	return ret;

@@ -80,9 +80,39 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
         log_debug("Recv %u bytes: %.*s", n, n, updatepkt->buf);
         
         ret = updatepkt->ctl->def->read_up_resp(updatepkt->buf, &report);
-        /* TODO: analyse report */
         
-        log_debug("Report return:%d", ret);
+        if(ret != 0)
+        {
+                log_error("Unknown error when reading response.");
+                updatepkt->ctl->locked = 1;
+                updatepkt->ctl->status = SNeedToUpdate;
+        }
+        else
+        {
+                if(report.code == up_success)
+                {
+                        updatepkt->ctl->status = SUpdated;
+                        updatepkt->ctl->last_update.tv_sec
+                                = timeofday.tv_sec;
+                }
+                else
+                {
+                        log_notice("update failed for '%s' (rc=%d)",
+                                   updatepkt->ctl->def->name,
+                                   report.code);
+                        
+                        updatepkt->ctl->status = SNeedToUpdate;
+                        updatepkt->ctl->locked = report.rcmd_lock;
+                        if(report.rcmd_freeze)
+                        {
+                                updatepkt->ctl->freezed = 1;
+                                updatepkt->ctl->freeze_time.tv_sec 
+                                        = timeofday.tv_sec;
+                                updatepkt->ctl->freeze_interval.tv_sec 
+                                        = report.rcmd_freezetime;
+                        }
+                }
+        }
         
 	updatepkt->state = EFinished;
 }
@@ -209,7 +239,8 @@ static void ctl_connect(struct updatepkt *updatepkt)
         addr.sin_port = htons(updatepkt->ctl->def->portserv);
 
         log_debug("connecting to %s:%d", 
-                  updatepkt->ctl->def->ipserv, updatepkt->ctl->def->portserv);
+                  updatepkt->ctl->def->ipserv, 
+                  updatepkt->ctl->def->portserv);
         updatepkt->state = EConnecting;
         
         if(connect(updatepkt->s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
@@ -276,6 +307,11 @@ void ctl_free(void)
         }
 }
 
+/*
+ * create updatepkt if:
+ * - wan ip has changed and the service isn't locked of freezed
+ * - (dyndns spec) 28 days after last update if IP no changed yet
+ */
 void ctl_preselect(struct cfg *cfg)
 {
         struct in_addr curr_wanip;
@@ -284,14 +320,22 @@ void ctl_preselect(struct cfg *cfg)
         char buf_wanip[32];
         
         /* TODO: indirect mode */
-        /* TODO: need to retry service no updated too */
         
-        /* wan ip has changed ? */
         if(ctl_getifaddr(cfg->wan_ifname, &curr_wanip) != 0)
         {
+                /* no wan ? */
+                return;
+        }
+        
+        
+        /* transform wan ip raw in ascii char */
+        if(!inet_ntop(AF_INET, &wanip, buf_wanip, sizeof(buf_wanip)))
+        {
+                log_error("inet_ntop(): %m");
                 return;
         }
 
+        /****** wan ip has changed ? ******/
         if(curr_wanip.s_addr != wanip.s_addr)
         {
                 log_debug("new wan ip !");
@@ -305,13 +349,28 @@ void ctl_preselect(struct cfg *cfg)
                 wanip.s_addr = curr_wanip.s_addr;
         }
         
-        /* wan ip ! */
-        if(!inet_ntop(AF_INET, &wanip, buf_wanip, sizeof(buf_wanip)))
+        /****** 28 days after last update ******/
+        list_for_each_entry(servicectl, 
+                            &(servicectl_list), list) 
         {
-                log_error("inet_ntop(): %m");
-                return;
+                if(servicectl->status != SUpdated)
+                {
+                        continue;
+                }
+                
+                log_debug("last update: %d, timeofday: %d",
+                          servicectl->last_update.tv_sec,
+                          timeofday.tv_sec);
+                if(timeofday.tv_sec - servicectl->last_update.tv_sec
+                   >= 2419200)
+                {
+                        log_notice("re-update service after 28 beautiful days");
+                        servicectl->status = SNeedToUpdate;
+                }
         }
 
+        /*********************/
+        
         /* start update processus for service which need to update */
         list_for_each_entry(servicectl, 
                             &(servicectl_list), list) 
@@ -452,6 +511,8 @@ int ctl_service_mapcfg(struct cfg *cfg)
         list_for_each_entry(servicecfg, 
                             &(cfg->servicecfg_list), list) 
         {
+                ismapped = 0;
+                
                 list_for_each_entry(service,
                                     &(service_list), list) 
                 {
@@ -488,4 +549,28 @@ int ctl_service_mapcfg(struct cfg *cfg)
         }
 
         return ret;
+}
+
+/*
+ * update service already living
+ * create if service not exist
+ */
+int ctl_service_mapnewcfg(struct cfg *oldcfg,
+                          const struct cfg *newcfg)
+{
+        int ismapped = 0;
+        
+        struct servicecfg *newservicecfg = NULL;
+
+        UNUSED(oldcfg);
+
+        list_for_each_entry(newservicecfg, 
+                            &(newcfg->servicecfg_list), list) 
+        {
+                ismapped = 0;
+                
+                /* TODO */
+        }
+
+        return 0;
 }

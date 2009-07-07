@@ -11,8 +11,9 @@
 
 int quitting = 0;
 int reloadconf = 0;
+struct timeval timeofday = {0, 0};
 
-void sighdl(int signum)
+static void sighdl(int signum)
 {
 	if(signum == SIGTERM || signum == SIGINT)
 	{
@@ -31,9 +32,10 @@ int main(int argc, char **argv)
 {
 	int ret = 0;
 	struct sigaction sa;
-        struct cfg cfg;
+        struct cfg cfg, cfgre;
 
-        struct timeval timeout = {0, 0}, timeofday, lasttimeofday = {0, 0};
+        struct timeval timeout = {0, 0}, 
+                lasttimeofday = {0, 0};
         struct servicectl *servicectl = NULL;
 	fd_set readset, writeset;
 	int max_fd = -1;
@@ -92,6 +94,36 @@ int main(int argc, char **argv)
                 util_getuptime(&timeofday);
                 timeout.tv_sec = 15;
                 
+                /* reload config ? */
+                if(reloadconf)
+                {
+                        log_debug("reload configuration");
+                        
+                        memset(&cfgre, 0, sizeof(struct cfg));
+                        
+                        if(config_parse_file(&cfgre, cfg.optionsfile) == 0)
+                        {
+                                if(ctl_service_mapnewcfg(&cfg, &cfgre) == 0)
+                                {
+                                        /* TODO: copy new cfg */
+                                }
+                                else
+                                {
+                                        log_critical("Unable to map the new "
+                                                     "configuration.");
+                                }
+
+                                config_free(&cfgre);
+                        }
+                        else
+                        {
+                                log_error("The new configuration file is "
+                                          "invalid. fix it.");
+                        }
+
+                        reloadconf = 0;
+                }
+
                 /* unfreeze services ? */
                 list_for_each_entry(servicectl,
                                     &servicectl_list, list)
@@ -132,9 +164,7 @@ int main(int argc, char **argv)
                         
                         if(reloadconf)
                         {
-                                /* TODO */
-                                log_debug("Reloading configuration");
-                                reloadconf = 0;
+                                continue;
                         }
 
                         /* TODO, very serious cause of error */

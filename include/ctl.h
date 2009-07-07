@@ -9,7 +9,7 @@
 
 struct servicectl {
 	enum {
-                SNeedToUpdate,
+                SNeedToUpdate = 1,
                 SUpdating,
                 SUpdated,
         } status;
@@ -61,9 +61,16 @@ extern void ctl_processfds(fd_set *readset, fd_set *writeset);
 /* after reading cfg, create service controler */
 extern int ctl_service_mapcfg(struct cfg *cfg);
 
+/* after reading a new cfg, resync controler */
+extern int ctl_service_mapnewcfg(struct cfg *oldcfg,
+                                 const struct cfg *newcfg);
+
 /********* services.c *********/
 extern struct list_head service_list;
 
 extern void services_populate_list(void);
+
+/********* yaddns.c ***********/
+extern struct timeval timeofday;
 
 #endif

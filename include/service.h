@@ -7,9 +7,21 @@
 #include "config.h"
 
 struct upreply_report {
-	int code;
-	int lock_wnsc; /* lock wait new service configuration */
-	int freezetime;
+	enum {
+                up_success,
+                up_unknown_error,
+                up_syntax_error,
+                up_account_error,
+                up_account_loginpass_error,
+                up_account_hostname_error,
+                up_account_abuse_error,
+                up_server_error,
+        } code;
+        char custom_rc[16]; /* small return code receive by server */
+        char custom_rc_text[64]; /* explanation of return code in english */
+	int rcmd_lock; /* lock or not ? */
+        int rcmd_freeze; /* freeze or not ? */
+        int rcmd_freezetime; /* freezetime recommendation in seconds */
 };
 
 struct service {
