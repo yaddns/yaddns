@@ -30,7 +30,7 @@ struct service {
         short int portserv;
 	int (*ctor) (void);
 	int (*dtor) (void);
-	int (*make_up_query) (const struct servicecfg cfg, 
+	int (*make_up_query) (const struct accountcfg cfg, 
 			      const char const *newwanip, 
 			      char *buffer,
 			      size_t buffer_size);

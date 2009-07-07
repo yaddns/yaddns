@@ -14,7 +14,7 @@ struct servicectl {
                 SUpdated,
         } status;
         struct service *def;
-	struct servicecfg *cfg;
+	struct accountcfg *cfg;
 	struct timeval last_update;
 	int locked;
 	int freezed;

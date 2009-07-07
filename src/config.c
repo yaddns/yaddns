@@ -95,10 +95,10 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                         continue;
                 }
                 
-                /* service definition ? */
-                if(memcmp(n, "service", sizeof("service") - 1) == 0)
+                /* account definition ? */
+                if(memcmp(n, "account", sizeof("account") - 1) == 0)
                 {
-                        /* maybe a service line definition ? */
+                        /* maybe a account line definition ? */
                         if((equals = strchr(n, '{')) != NULL)
                         {
                                 /* remove whitespaces before { */
@@ -109,7 +109,7 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                                         *t = '\0';
                                 }
 
-                                /* maybe { is glued to service ? */
+                                /* maybe { is glued to account ? */
                                 *equals = '\0';
                                 
                                 *name = n;
@@ -119,7 +119,7 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                         else
                         {
                                 log_error("parsing error at '%s'. Invalid "
-                                          "service declaration. "
+                                          "account declaration. "
                                           "(file %s - line %d)",
                                           n, filename, (*linenum));
                                 ret = -1;
@@ -128,7 +128,7 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                         break;
                 }
 
-                /* maybe end of service definition ? */
+                /* maybe end of account definition ? */
                 if(memcmp(n, "}", sizeof("}") - 1) == 0)
                 {
                         *name = NULL;
@@ -253,10 +253,10 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 cfg->wan_ifname = strdup("ppp0");
         }
 
-        /* check if there service defined */
-        if(list_empty(&(cfg->servicecfg_list)))
+        /* check if there account defined */
+        if(list_empty(&(cfg->accountcfg_list)))
         {
-                log_warning("No service defined.");
+                log_warning("No account defined.");
         }
 
 	return 0;
@@ -269,10 +269,10 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 	char buffer[1024];
 	int linenum = 0;
 	char *name = NULL, *value = NULL;
-        int servicedef_scope = 0;
-        struct servicecfg *servicecfg = NULL;
+        int accountdef_scope = 0;
+        struct accountcfg *accountcfg = NULL;
         
-        INIT_LIST_HEAD( &(cfg->servicecfg_list) );
+        INIT_LIST_HEAD( &(cfg->accountcfg_list) );
         
         log_debug("Trying to parse '%s' config file", filename);
         
@@ -289,67 +289,73 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 	{
                 log_debug("assignment '%s' = '%s'", name, value);
                 
-                if(servicedef_scope)
+                if(accountdef_scope)
                 {
                         if(name == NULL)
                         {
-                                servicedef_scope = 0;
+                                accountdef_scope = 0;
                                 
                                 /* check and insert */
-                                if(servicecfg->name == NULL
-                                   || servicecfg->username == NULL
-                                   || servicecfg->passwd == NULL
-                                   || servicecfg->hostname == NULL)
+                                if(accountcfg->name == NULL
+                                   || accountcfg->service == NULL
+                                   || accountcfg->username == NULL
+                                   || accountcfg->passwd == NULL
+                                   || accountcfg->hostname == NULL)
                                 {
                                         log_error("Missing value(s) for "
-                                                  "service '%s' (file %s "
-                                                  "line %d)",
-                                                  servicecfg->name,
+                                                  "account name '%s' service '%s'"
+                                                  "(file %s - line %d)",
+                                                  accountcfg->name,
+                                                  accountcfg->service,
                                                   filename, linenum);
                                         
-                                        CFG_FREE(servicecfg->name);
-                                        CFG_FREE(servicecfg->username);
-                                        CFG_FREE(servicecfg->passwd);
-                                        CFG_FREE(servicecfg->name);
-                                        free(servicecfg);
+                                        CFG_FREE(accountcfg->name);
+                                        CFG_FREE(accountcfg->service);
+                                        CFG_FREE(accountcfg->username);
+                                        CFG_FREE(accountcfg->passwd);
+                                        CFG_FREE(accountcfg->name);
+                                        free(accountcfg);
                                         
                                         ret = -1;
                                         break;
                                 }
 
-                                list_add(&(servicecfg->list), 
-                                         &(cfg->servicecfg_list));
+                                list_add(&(accountcfg->list), 
+                                         &(cfg->accountcfg_list));
                         }
                         else if(strcmp(name, "name") == 0)
                         {
-                                CFG_SET_VALUE(servicecfg->name, value);
+                                CFG_SET_VALUE(accountcfg->name, value);
+                        }
+                        else if(strcmp(name, "service") == 0)
+                        {
+                                CFG_SET_VALUE(accountcfg->service, value);
                         }
                         else if(strcmp(name, "username") == 0)
                         {
-                                CFG_SET_VALUE(servicecfg->username, value);
+                                CFG_SET_VALUE(accountcfg->username, value);
                         }
                         else if(strcmp(name, "password") == 0)
                         {
-                                CFG_SET_VALUE(servicecfg->passwd, value);
+                                CFG_SET_VALUE(accountcfg->passwd, value);
                         }
                         else if(strcmp(name, "hostname") == 0)
                         {
-                                CFG_SET_VALUE(servicecfg->hostname, value);
+                                CFG_SET_VALUE(accountcfg->hostname, value);
                         }
                         else
                         {
                                 log_error("Invalid option name '%s' for "
-                                          "service definition (file %s "
-                                          "line %d)",
+                                          "an account (file %s line %d)",
                                           name, filename, linenum);
                                 ret = -1;
                                 break;
                         }
                 }
-                else if(strcmp(name, "service") == 0)
+                else if(strcmp(name, "account") == 0)
                 {
-                        servicedef_scope = 1;
-                        servicecfg = calloc(1, sizeof(struct servicecfg));
+                        accountdef_scope = 1;
+                        accountcfg = calloc(1, sizeof(struct accountcfg));
                 }
                 else if(strcmp(name, "wanifname") == 0)
                 {
@@ -384,11 +390,12 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 ret = 0;
         }
 
-        if(servicedef_scope)
+        if(accountdef_scope)
         {
-                log_error("No found closure for service '%s' "
+                log_error("No found closure for account name '%s' service '%s' "
                           "(file %s line %d)", 
-                          servicecfg->name, filename, linenum);
+                          accountcfg->name, accountcfg->service, 
+                          filename, linenum);
                 ret = -1;
         }
 
@@ -399,22 +406,23 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 
 int config_free(struct cfg *cfg)
 {
-        struct servicecfg *servicecfg = NULL,
+        struct accountcfg *accountcfg = NULL,
                 *safe = NULL;
         
         CFG_FREE(cfg->wan_ifname);
         CFG_FREE(cfg->optionsfile);
         
-        list_for_each_entry_safe(servicecfg, safe, 
-                                 &(cfg->servicecfg_list), list) 
+        list_for_each_entry_safe(accountcfg, safe, 
+                                 &(cfg->accountcfg_list), list) 
         {
-                CFG_FREE(servicecfg->name);
-                CFG_FREE(servicecfg->username);
-                CFG_FREE(servicecfg->passwd);
-                CFG_FREE(servicecfg->hostname);
+                CFG_FREE(accountcfg->name);
+                CFG_FREE(accountcfg->service);
+                CFG_FREE(accountcfg->username);
+                CFG_FREE(accountcfg->passwd);
+                CFG_FREE(accountcfg->hostname);
                 
-                list_del(&(servicecfg->list));
-                free(servicecfg);
+                list_del(&(accountcfg->list));
+                free(accountcfg);
         }
 
 	return 0;
@@ -422,19 +430,20 @@ int config_free(struct cfg *cfg)
 
 void config_print(struct cfg *cfg)
 {
-        struct servicecfg *servicecfg = NULL;
+        struct accountcfg *accountcfg = NULL;
         
         printf("Configuration:\n");
         printf(" cfg file = '%s'\n", cfg->optionsfile);
         printf(" wan ifname = '%s'\n", cfg->wan_ifname);
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
         
-        list_for_each_entry(servicecfg,
-                            &(cfg->servicecfg_list), list) 
+        list_for_each_entry(accountcfg,
+                            &(cfg->accountcfg_list), list) 
         {
-                printf(" ---- service name '%s' ----\n", servicecfg->name);
-                printf("   username = '%s'\n", servicecfg->username);
-                printf("   password = '%s'\n", servicecfg->passwd);
-                printf("   hostname = '%s'\n", servicecfg->hostname);
+                printf(" ---- account name '%s' ----\n", accountcfg->name);
+                printf("   service = '%s'\n", accountcfg->service);
+                printf("   username = '%s'\n", accountcfg->username);
+                printf("   password = '%s'\n", accountcfg->passwd);
+                printf("   hostname = '%s'\n", accountcfg->hostname);
         }
 }

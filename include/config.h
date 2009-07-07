@@ -12,11 +12,12 @@ struct cfg {
         int wan_cnt_type;
         char *wan_ifname;
         char *optionsfile;
-        struct list_head servicecfg_list;
+        struct list_head accountcfg_list;
 };
 
-struct servicecfg {
-        char *name;
+struct accountcfg {
+        char *name; /* must be unique */
+        char *service;
 	char *username;
 	char *passwd;
 	char *hostname;

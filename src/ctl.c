@@ -97,7 +97,7 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
                 }
                 else
                 {
-                        log_notice("update failed for '%s' (rc=%d)",
+                        log_notice("update failed for account '%s' (rc=%d)",
                                    updatepkt->ctl->def->name,
                                    report.code);
                         
@@ -382,8 +382,9 @@ void ctl_preselect(struct cfg *cfg)
                         
                 if(servicectl->status == SNeedToUpdate)
                 {
-                        log_debug("Service '%s' need to update !",
-                                  servicectl->def->name);
+                        log_debug("Account '%s' service '%s' need to update !",
+                                  servicectl->cfg->name, 
+                                  servicectl->cfg->service);
                         
                         updatepkt = ctl_create_updatepkt(&curr_wanip);
                         if(updatepkt != NULL)
@@ -502,26 +503,26 @@ void ctl_processfds(fd_set *readset, fd_set *writeset)
 int ctl_service_mapcfg(struct cfg *cfg)
 {
         struct service *service = NULL;
-        struct servicecfg *servicecfg = NULL;
+        struct accountcfg *accountcfg = NULL;
         struct servicectl *servicectl = NULL,
                 *safe = NULL;
         int ismapped = 0;
         int ret = 0;
 
-        list_for_each_entry(servicecfg, 
-                            &(cfg->servicecfg_list), list) 
+        list_for_each_entry(accountcfg, 
+                            &(cfg->accountcfg_list), list) 
         {
                 ismapped = 0;
                 
                 list_for_each_entry(service,
                                     &(service_list), list) 
                 {
-                        if(strcmp(service->name, servicecfg->name) == 0)
+                        if(strcmp(service->name, accountcfg->service) == 0)
                         {
                                 servicectl = calloc(1, 
                                                     sizeof(struct servicectl));
                                 servicectl->def = service;
-                                servicectl->cfg = servicecfg;
+                                servicectl->cfg = accountcfg;
 
                                 list_add(&(servicectl->list), 
                                          &(servicectl_list));
@@ -534,7 +535,7 @@ int ctl_service_mapcfg(struct cfg *cfg)
                 if(!ismapped)
                 {
                         log_error("No service named '%s' available !",
-                                  servicecfg->name);
+                                  accountcfg->service);
 
                         list_for_each_entry_safe(servicectl, safe, 
                                  &(servicectl_list), list) 
@@ -560,12 +561,12 @@ int ctl_service_mapnewcfg(struct cfg *oldcfg,
 {
         int ismapped = 0;
         
-        struct servicecfg *newservicecfg = NULL;
+        struct accountcfg *newaccountcfg = NULL;
 
         UNUSED(oldcfg);
 
-        list_for_each_entry(newservicecfg, 
-                            &(newcfg->servicecfg_list), list) 
+        list_for_each_entry(newaccountcfg, 
+                            &(newcfg->accountcfg_list), list) 
         {
                 ismapped = 0;
                 

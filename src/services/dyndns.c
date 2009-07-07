@@ -99,7 +99,7 @@ static struct {
 	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
-static int dyndns_write(const struct servicecfg cfg, 
+static int dyndns_write(const struct accountcfg cfg, 
 			  const char const *newwanip, 
 			  char *buffer, 
 			  size_t buffer_size);
@@ -114,7 +114,7 @@ struct service dyndns_service = {
 	.read_up_resp = dyndns_read,
 };
 
-static int dyndns_write(const struct servicecfg cfg, 
+static int dyndns_write(const struct accountcfg cfg, 
 			const char const *newwanip, 
 			char *buffer, 
 			size_t buffer_size)
