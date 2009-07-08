@@ -91,6 +91,9 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
         {
                 if(report.code == up_success)
                 {
+                        log_info("update success for account '%s'",
+                                 updatepkt->ctl->cfg->name);
+                        
                         updatepkt->ctl->status = SOk;
                         updatepkt->ctl->updated = 1;
                         updatepkt->ctl->last_update.tv_sec
@@ -674,10 +677,14 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                                     &(bridger_list), list)
                 {
                         bridger->ctl->cfg = bridger->cfg;
-                        bridger->ctl->updated = 0;
-                        bridger->ctl->locked = 0;
-                        bridger->ctl->freezed = 0;
-                        
+
+                        if(bridger->type == TUpdate)
+                        {
+                                bridger->ctl->updated = 0;
+                                bridger->ctl->locked = 0;
+                                bridger->ctl->freezed = 0;
+                        }
+
                         if(bridger->type == TNew)
                         {
                                 /* add to the accountctl list */
@@ -685,6 +692,32 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                                          &(accountctl_list));
                         }
                 }
+
+                /* remove unused account ctl */
+                list_for_each_entry(old_actcfg,
+                                    &(oldcfg->accountcfg_list), list)
+                {
+                        new_actcfg = config_account_get(newcfg, old_actcfg->name);
+                        if(new_actcfg == NULL)
+                        {
+                                /* need to remove */
+                                actctl = ctl_account_get(old_actcfg->name);
+                                if(actctl != NULL)
+                                {
+                                        log_debug("remove unused ctl '%p'",
+                                                  actctl);
+                                        
+                                        list_del(&(actctl->list));
+                                }
+                                else
+                                {
+                                        log_critical("Unable to get account "
+                                                     "ctl for '%s'. Continue..",
+                                                     old_actcfg->name);
+                                }
+                        }
+                }
+
         }
         
         /* clean up */

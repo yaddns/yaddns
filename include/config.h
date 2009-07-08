@@ -30,7 +30,7 @@ extern int config_parse_file(struct cfg *cfg, const char *filename);
 
 extern int config_free(struct cfg *cfg);
 
-extern struct accountcfg * config_account_get(struct cfg *cfg, const char *name);
+extern struct accountcfg * config_account_get(const struct cfg *cfg, const char *name);
 
 extern void config_print(struct cfg *cfg);
 

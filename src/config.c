@@ -429,7 +429,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 	return ret;
 }
 
-struct accountcfg * config_account_get(struct cfg *cfg, const char *name)
+struct accountcfg * config_account_get(const struct cfg *cfg, const char *name)
 {
         struct accountcfg *accountcfg = NULL;
         
