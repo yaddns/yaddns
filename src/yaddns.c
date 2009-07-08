@@ -122,13 +122,14 @@ int main(int argc, char **argv)
 
                                         /* use new configuration */
                                         cfgre.optionsfile = strdup(cfg.optionsfile);
+                                        
                                         config_free(&cfg);
-                                        cfg = cfgre;
+                                        config_copy(&cfg, &cfgre);
                                 }
                                 else
                                 {
-                                        log_critical("Unable to map the new "
-                                                     "configuration.");
+                                        log_error("Unable to map the new "
+                                                  "configuration. Fix config file");
                                         config_free(&cfgre);
                                 }
                         }

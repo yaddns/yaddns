@@ -99,7 +99,7 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
                 else
                 {
                         log_notice("update failed for account '%s' (rc=%d)",
-                                   updatepkt->ctl->def->name,
+                                   updatepkt->ctl->cfg->name,
                                    report.code);
                         
                         updatepkt->ctl->status = SError;
@@ -558,7 +558,8 @@ int ctl_account_mapcfg(struct cfg *cfg)
  */
 struct bridger {
         enum {
-                TNew = 1,
+                TMirror = 0,
+                TNew,
                 TUpdate,
         } type;
         struct accountcfg *cfg;
@@ -589,6 +590,21 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                 old_actcfg = config_account_get(oldcfg, new_actcfg->name);
                 if(old_actcfg != NULL)
                 {
+                        /* retrieve the ctl */
+                        actctl = ctl_account_get(new_actcfg->name);
+                        if(actctl == NULL)
+                        {
+                                log_critical("Unable to get account ctl "
+                                             "for account '%s'", 
+                                             new_actcfg->name);
+                                ret = -1;
+                                break;
+                        }
+
+                        bridger = calloc(1, sizeof(struct bridger));
+                        bridger->cfg = new_actcfg; /* link the new cfg */
+                        bridger->ctl = actctl; /* link the old ctl */
+                        
                         if(strcmp(new_actcfg->service, 
                                   old_actcfg->service) != 0
                            || strcmp(new_actcfg->username, 
@@ -599,28 +615,16 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                                      old_actcfg->hostname) != 0)
                         {
                                 /* it's an update */
-                                bridger = calloc(1, sizeof(struct bridger));
                                 bridger->type = TUpdate;
-                                bridger->cfg = new_actcfg;
-                                
-                                actctl = ctl_account_get(new_actcfg->name);
-                                if(actctl != NULL)
-                                {
-                                        bridger->ctl = actctl;
-                                        
-                                        list_add(&(bridger->list), 
-                                                 &bridger_list);
-                                }
-                                else
-                                {
-                                        log_critical("Unable to get account ctl "
-                                                     "for account '%s'", 
-                                                     new_actcfg->name);
-                                        free(bridger);
-                                        ret = -1;
-                                        break;
-                                }
                         }
+                        else
+                        {
+                                bridger->type = TMirror;
+                        }
+                        
+                        list_add(&(bridger->list), 
+                                 &bridger_list);
+                        
                 }
                 else
                 {

@@ -358,6 +358,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 {
                         accountdef_scope = 1;
                         accountcfg = calloc(1, sizeof(struct accountcfg));
+                        log_debug("add accountcfg '%p'", accountcfg);
                 }
                 else if(strcmp(name, "wanifname") == 0)
                 {
@@ -485,5 +486,20 @@ void config_print(struct cfg *cfg)
                 printf("   username = '%s'\n", accountcfg->username);
                 printf("   password = '%s'\n", accountcfg->passwd);
                 printf("   hostname = '%s'\n", accountcfg->hostname);
+        }
+}
+
+void config_copy(struct cfg *cfgdst, const struct cfg *cfgsrc)
+{          
+        struct accountcfg *actcfg = NULL,
+                *safe_actcfg = NULL;
+        
+        memcpy(cfgdst, cfgsrc, 
+               sizeof(struct cfg) - sizeof(struct list_head));
+        list_for_each_entry_safe(actcfg, safe_actcfg,
+                                 &(cfgsrc->accountcfg_list), list)
+        {
+                list_move(&(actcfg->list),
+                          &(cfgdst->accountcfg_list));
         }
 }

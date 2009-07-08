@@ -34,4 +34,6 @@ extern struct accountcfg * config_account_get(struct cfg *cfg, const char *name)
 
 extern void config_print(struct cfg *cfg);
 
+extern void config_copy(struct cfg *cfgdst, const struct cfg *cfgsrc);
+
 #endif
