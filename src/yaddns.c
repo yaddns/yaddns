@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
         struct timeval timeout = {0, 0}, 
                 lasttimeofday = {0, 0};
-        struct servicectl *servicectl = NULL;
+        struct accountctl *accountctl = NULL;
 	fd_set readset, writeset;
 	int max_fd = -1;
         
@@ -79,8 +79,8 @@ int main(int argc, char **argv)
 		goto exit_clean;
 	}
 
-        /* create ctl */
-        if(ctl_service_mapcfg(&cfg) != 0)
+        /* create account ctls */
+        if(ctl_account_mapcfg(&cfg) != 0)
         {
                 ret = 1;
                 goto exit_clean;
@@ -103,17 +103,34 @@ int main(int argc, char **argv)
                         
                         if(config_parse_file(&cfgre, cfg.optionsfile) == 0)
                         {
-                                if(ctl_service_mapnewcfg(&cfg, &cfgre) == 0)
+                                if(ctl_account_mapnewcfg(&cfg, &cfgre) == 0)
                                 {
-                                        /* TODO: copy new cfg */
+                                        /* if change wan ifname, reupdate all 
+                                         * accounts 
+                                         */
+                                        if(cfgre.wan_cnt_type == wan_cnt_direct
+                                           && strcmp(cfgre.wan_ifname,
+                                                     cfg.wan_ifname) != 0)
+                                        {
+                                                list_for_each_entry(accountctl,
+                                                                    &accountctl_list, 
+                                                                    list)
+                                                {
+                                                        accountctl->updated = 0;
+                                                }
+                                        }
+
+                                        /* use new configuration */
+                                        cfgre.optionsfile = strdup(cfg.optionsfile);
+                                        config_free(&cfg);
+                                        cfg = cfgre;
                                 }
                                 else
                                 {
                                         log_critical("Unable to map the new "
                                                      "configuration.");
+                                        config_free(&cfgre);
                                 }
-
-                                config_free(&cfgre);
                         }
                         else
                         {
@@ -125,19 +142,19 @@ int main(int argc, char **argv)
                 }
 
                 /* unfreeze services ? */
-                list_for_each_entry(servicectl,
-                                    &servicectl_list, list)
+                list_for_each_entry(accountctl,
+                                    &accountctl_list, list)
                 {
-                        if(!servicectl->freezed)
+                        if(!accountctl->freezed)
                         {
                                 continue;
                         }
                         
-                        if(timeofday.tv_sec - servicectl->freeze_time.tv_sec 
-                           >= servicectl->freeze_interval.tv_sec)
+                        if(timeofday.tv_sec - accountctl->freeze_time.tv_sec 
+                           >= accountctl->freeze_interval.tv_sec)
                         {
                                 /* unfreeze ! */
-                                servicectl->freezed = 0;
+                                accountctl->freezed = 0;
                         }
                 }
 

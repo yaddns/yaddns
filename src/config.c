@@ -270,7 +270,8 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 	int linenum = 0;
 	char *name = NULL, *value = NULL;
         int accountdef_scope = 0;
-        struct accountcfg *accountcfg = NULL;
+        struct accountcfg *accountcfg = NULL,
+                *safe_accountcfg = NULL;
         
         INIT_LIST_HEAD( &(cfg->accountcfg_list) );
         
@@ -348,6 +349,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                 log_error("Invalid option name '%s' for "
                                           "an account (file %s line %d)",
                                           name, filename, linenum);
+                                
                                 ret = -1;
                                 break;
                         }
@@ -383,11 +385,33 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 
         }
         
-        if(ret == -1 && feof(file))
+        if(ret == -1)
         {
-                /* end of file */
-                log_debug("End of configuration file");
-                ret = 0;
+                if(feof(file))
+                {
+                        /* end of file */
+                        log_debug("End of configuration file");
+                        ret = 0;
+                }
+                else
+                {
+                        /* error. need to cleanup */
+                        CFG_FREE(cfg->wan_ifname);
+                        
+                        list_for_each_entry_safe(accountcfg, safe_accountcfg,
+                                                 &(cfg->accountcfg_list), list)
+                        {
+                                CFG_FREE(accountcfg->name);
+                                CFG_FREE(accountcfg->service);
+                                CFG_FREE(accountcfg->username);
+                                CFG_FREE(accountcfg->passwd);
+                                CFG_FREE(accountcfg->name);
+                                
+                                list_del(&(accountcfg->list));
+                                free(accountcfg);
+                        }
+                                        
+                }
         }
 
         if(accountdef_scope)
@@ -402,6 +426,22 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         fclose(file);
         
 	return ret;
+}
+
+struct accountcfg * config_account_get(struct cfg *cfg, const char *name)
+{
+        struct accountcfg *accountcfg = NULL;
+        
+        list_for_each_entry(accountcfg,
+                            &(cfg->accountcfg_list), list) 
+        {
+                if(strcmp(accountcfg->name, name) == 0)
+                {
+                        return accountcfg;
+                }
+        }
+
+        return NULL;
 }
 
 int config_free(struct cfg *cfg)

@@ -17,7 +17,7 @@
 #include "util.h"
 
 /* decs public variables */
-struct list_head servicectl_list;
+struct list_head accountctl_list;
 
 /* decs static variables */
 static struct in_addr wanip;
@@ -85,13 +85,14 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
         {
                 log_error("Unknown error when reading response.");
                 updatepkt->ctl->locked = 1;
-                updatepkt->ctl->status = SNeedToUpdate;
+                updatepkt->ctl->status = SError;
         }
         else
         {
                 if(report.code == up_success)
                 {
-                        updatepkt->ctl->status = SUpdated;
+                        updatepkt->ctl->status = SOk;
+                        updatepkt->ctl->updated = 1;
                         updatepkt->ctl->last_update.tv_sec
                                 = timeofday.tv_sec;
                 }
@@ -101,7 +102,7 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
                                    updatepkt->ctl->def->name,
                                    report.code);
                         
-                        updatepkt->ctl->status = SNeedToUpdate;
+                        updatepkt->ctl->status = SError;
                         updatepkt->ctl->locked = report.rcmd_lock;
                         if(report.rcmd_freeze)
                         {
@@ -279,7 +280,7 @@ static void ctl_process(struct updatepkt *updatepkt)
 
 void ctl_init(void)
 {
-        INIT_LIST_HEAD(&servicectl_list);
+        INIT_LIST_HEAD(&accountctl_list);
         INIT_LIST_HEAD(&updatepkt_list);
 
         inet_aton("0.0.0.0", &wanip);
@@ -287,16 +288,16 @@ void ctl_init(void)
 
 void ctl_free(void)
 {
-        struct servicectl *servicectl = NULL,
-                *safe_sctl = NULL;
+        struct accountctl *accountctl = NULL,
+                *safe_actl = NULL;
         struct updatepkt *updatepkt = NULL,
                 *safe_upkt = NULL;
         
-        list_for_each_entry_safe(servicectl, safe_sctl, 
-                                 &(servicectl_list), list) 
+        list_for_each_entry_safe(accountctl, safe_actl, 
+                                 &(accountctl_list), list) 
         {
-                list_del(&(servicectl->list));
-                free(servicectl);
+                list_del(&(accountctl->list));
+                free(accountctl);
         }
         
         list_for_each_entry_safe(updatepkt, safe_upkt, 
@@ -315,7 +316,7 @@ void ctl_free(void)
 void ctl_preselect(struct cfg *cfg)
 {
         struct in_addr curr_wanip;
-        struct servicectl *servicectl = NULL;
+        struct accountctl *accountctl = NULL;
         struct updatepkt *updatepkt = NULL;
         char buf_wanip[32];
         
@@ -340,60 +341,60 @@ void ctl_preselect(struct cfg *cfg)
         {
                 log_debug("new wan ip !");
                 
-                list_for_each_entry(servicectl, 
-                                    &(servicectl_list), list) 
+                list_for_each_entry(accountctl, 
+                                    &(accountctl_list), list) 
                 {
-                        servicectl->status = SNeedToUpdate;
+                        accountctl->updated = 0;
                 }
 
                 wanip.s_addr = curr_wanip.s_addr;
         }
         
         /****** 28 days after last update ******/
-        list_for_each_entry(servicectl, 
-                            &(servicectl_list), list) 
+        list_for_each_entry(accountctl, 
+                            &(accountctl_list), list) 
         {
-                if(servicectl->status != SUpdated)
+                if(!accountctl->updated)
                 {
                         continue;
                 }
                 
                 log_debug("last update: %d, timeofday: %d",
-                          servicectl->last_update.tv_sec,
+                          accountctl->last_update.tv_sec,
                           timeofday.tv_sec);
-                if(timeofday.tv_sec - servicectl->last_update.tv_sec
+                if(timeofday.tv_sec - accountctl->last_update.tv_sec
                    >= 2419200)
                 {
                         log_notice("re-update service after 28 beautiful days");
-                        servicectl->status = SNeedToUpdate;
+                        accountctl->updated = 0;
                 }
         }
 
         /*********************/
         
         /* start update processus for service which need to update */
-        list_for_each_entry(servicectl, 
-                            &(servicectl_list), list) 
+        list_for_each_entry(accountctl, 
+                            &(accountctl_list), list) 
         {  
-                if(servicectl->locked || servicectl->freezed)
+                if(accountctl->locked || accountctl->freezed)
                 {
                         continue;
                 }
                         
-                if(servicectl->status == SNeedToUpdate)
+                if(!accountctl->updated && accountctl->status != SWorking)
                 {
                         log_debug("Account '%s' service '%s' need to update !",
-                                  servicectl->cfg->name, 
-                                  servicectl->cfg->service);
+                                  accountctl->cfg->name, 
+                                  accountctl->cfg->service);
                         
                         updatepkt = ctl_create_updatepkt(&curr_wanip);
                         if(updatepkt != NULL)
                         {
-                                /* link pkt and servicectl */
-                                updatepkt->ctl = servicectl;
+                                /* link pkt and accountctl */
+                                updatepkt->ctl = accountctl;
                                 
                                 /* call service update maker */
-                                if(servicectl->def->make_up_query(*(servicectl->cfg),
+                                if(accountctl->def->make_up_query(*(accountctl->cfg),
                                                                   buf_wanip,
                                                                   updatepkt->buf,
                                                                   sizeof(updatepkt->buf)) != 0)
@@ -405,7 +406,7 @@ void ctl_preselect(struct cfg *cfg)
                                 updatepkt->buf_tosend = strlen(updatepkt->buf);
 
                                 log_debug("+++ pkt: %s", updatepkt->buf);
-                                servicectl->status = SUpdating;
+                                accountctl->status = SWorking;
                         }
                 }
         }
@@ -490,8 +491,7 @@ void ctl_processfds(fd_set *readset, fd_set *writeset)
 
                         if(updatepkt->state == EError)
                         {
-                                /* need to retry ! */
-                                updatepkt->ctl->status = SNeedToUpdate;
+                                updatepkt->ctl->status = SError;
                         }
 
                         list_del(&(updatepkt->list));
@@ -500,11 +500,11 @@ void ctl_processfds(fd_set *readset, fd_set *writeset)
         }
 }
 
-int ctl_service_mapcfg(struct cfg *cfg)
+int ctl_account_mapcfg(struct cfg *cfg)
 {
         struct service *service = NULL;
         struct accountcfg *accountcfg = NULL;
-        struct servicectl *servicectl = NULL,
+        struct accountctl *accountctl = NULL,
                 *safe = NULL;
         int ismapped = 0;
         int ret = 0;
@@ -519,13 +519,13 @@ int ctl_service_mapcfg(struct cfg *cfg)
                 {
                         if(strcmp(service->name, accountcfg->service) == 0)
                         {
-                                servicectl = calloc(1, 
-                                                    sizeof(struct servicectl));
-                                servicectl->def = service;
-                                servicectl->cfg = accountcfg;
+                                accountctl = calloc(1, 
+                                                    sizeof(struct accountctl));
+                                accountctl->def = service;
+                                accountctl->cfg = accountcfg;
 
-                                list_add(&(servicectl->list), 
-                                         &(servicectl_list));
+                                list_add(&(accountctl->list), 
+                                         &(accountctl_list));
 
                                 ismapped = 1;
                                 break;
@@ -537,11 +537,11 @@ int ctl_service_mapcfg(struct cfg *cfg)
                         log_error("No service named '%s' available !",
                                   accountcfg->service);
 
-                        list_for_each_entry_safe(servicectl, safe, 
-                                 &(servicectl_list), list) 
+                        list_for_each_entry_safe(accountctl, safe, 
+                                 &(accountctl_list), list) 
                         {
-                                list_del(&(servicectl->list));
-                                free(servicectl);
+                                list_del(&(accountctl->list));
+                                free(accountctl);
                         }
 
                         ret = -1;
@@ -556,22 +556,164 @@ int ctl_service_mapcfg(struct cfg *cfg)
  * update service already living
  * create if service not exist
  */
-int ctl_service_mapnewcfg(struct cfg *oldcfg,
+struct bridger {
+        enum {
+                TNew = 1,
+                TUpdate,
+        } type;
+        struct accountcfg *cfg;
+        struct accountctl *ctl;
+        struct list_head list;
+};
+
+int ctl_account_mapnewcfg(struct cfg *oldcfg,
                           const struct cfg *newcfg)
 {
+        int ret = 0;
         int ismapped = 0;
         
-        struct accountcfg *newaccountcfg = NULL;
+        struct accountcfg *new_actcfg = NULL,
+                *old_actcfg = NULL;
+        struct accountctl *actctl = NULL;
+        struct service *service = NULL;
+        
+        struct bridger *bridger = NULL,
+                *safe_bridger = NULL;
+        struct list_head bridger_list;
 
-        UNUSED(oldcfg);
-
-        list_for_each_entry(newaccountcfg, 
+        INIT_LIST_HEAD(&bridger_list);
+        
+        list_for_each_entry(new_actcfg, 
                             &(newcfg->accountcfg_list), list) 
         {
-                ismapped = 0;
+                old_actcfg = config_account_get(oldcfg, new_actcfg->name);
+                if(old_actcfg != NULL)
+                {
+                        if(strcmp(new_actcfg->service, 
+                                  old_actcfg->service) != 0
+                           || strcmp(new_actcfg->username, 
+                                     old_actcfg->username) != 0
+                           || strcmp(new_actcfg->passwd, 
+                                     old_actcfg->passwd) != 0
+                           || strcmp(new_actcfg->hostname, 
+                                     old_actcfg->hostname) != 0)
+                        {
+                                /* it's an update */
+                                bridger = calloc(1, sizeof(struct bridger));
+                                bridger->type = TUpdate;
+                                bridger->cfg = new_actcfg;
+                                
+                                actctl = ctl_account_get(new_actcfg->name);
+                                if(actctl != NULL)
+                                {
+                                        bridger->ctl = actctl;
+                                        
+                                        list_add(&(bridger->list), 
+                                                 &bridger_list);
+                                }
+                                else
+                                {
+                                        log_critical("Unable to get account ctl "
+                                                     "for account '%s'", 
+                                                     new_actcfg->name);
+                                        free(bridger);
+                                        ret = -1;
+                                        break;
+                                }
+                        }
+                }
+                else
+                {
+                        ismapped = 0;
                 
-                /* TODO */
+                        /* not found so it's a new account */
+                        list_for_each_entry(service,
+                                            &(service_list), list) 
+                        {
+                                if(strcmp(service->name, 
+                                          new_actcfg->service) == 0)
+                                {
+                                        actctl = calloc(1, 
+                                                        sizeof(struct accountctl));
+                                        actctl->def = service;
+                                        
+                                        bridger = calloc(1, 
+                                                         sizeof(struct bridger));
+                                        bridger->type = TNew;
+                                        bridger->cfg = new_actcfg;
+                                        bridger->ctl = actctl;
+                        
+                                        list_add(&(bridger->list), 
+                                                 &bridger_list);
+                                        
+                                        ismapped = 1;
+                                        break;
+                                }
+                        }
+
+                        if(!ismapped)
+                        {
+                                log_error("No service named '%s' available !",
+                                          new_actcfg->service);
+
+                                ret = -1;
+                                break;
+                        }
+                }
+
         }
 
-        return 0;
+        if(ret == 0)
+        {
+                /* all is good, so finish the mapping */
+                list_for_each_entry(bridger,
+                                    &(bridger_list), list)
+                {
+                        bridger->ctl->cfg = bridger->cfg;
+                        bridger->ctl->updated = 0;
+                        bridger->ctl->locked = 0;
+                        bridger->ctl->freezed = 0;
+                        
+                        if(bridger->type == TNew)
+                        {
+                                /* add to the accountctl list */
+                                list_add(&(bridger->ctl->list), 
+                                         &(accountctl_list));
+                        }
+                }
+        }
+        
+        /* clean up */
+        list_for_each_entry_safe(bridger, safe_bridger, 
+                                 &(bridger_list), list) 
+        {
+                if(ret != 0)
+                {
+                        if(bridger->type == TNew)
+                        {
+                                free(bridger->ctl);
+                        }
+                }
+                
+                list_del(&(bridger->list));
+                free(bridger);
+        }
+
+        return ret;
+}
+
+struct accountctl *ctl_account_get(const char *accountname)
+{
+        struct accountctl *accountctl = NULL; 
+        
+        list_for_each_entry(accountctl, 
+                            &(accountctl_list), list) 
+        {
+                if(strcmp(accountctl->cfg->name, accountname) == 0)
+                {
+                        return accountctl;
+                }
+        }
+
+        return NULL;
 }

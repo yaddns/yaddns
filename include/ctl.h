@@ -7,15 +7,16 @@
 #include "config.h"
 #include "service.h"
 
-struct servicectl {
+struct accountctl {
 	enum {
-                SNeedToUpdate = 1,
-                SUpdating,
-                SUpdated,
+                SError = -1,
+                SOk = 1,
+                SWorking,
         } status;
         struct service *def;
 	struct accountcfg *cfg;
 	struct timeval last_update;
+        int updated; /* account is updated ? */
 	int locked;
 	int freezed;
 	struct timeval freeze_time;
@@ -24,7 +25,7 @@ struct servicectl {
 };
 
 struct updatepkt {
-        struct servicectl *ctl;
+        struct accountctl *ctl;
         int s; /* socket */
         enum {
                 ECreated,
@@ -41,7 +42,7 @@ struct updatepkt {
 };
 
 /********* ctl.c *********/
-extern struct list_head servicectl_list;
+extern struct list_head accountctl_list;
 
 /* init the allocated structures */
 extern void ctl_init(void);
@@ -58,12 +59,14 @@ extern void ctl_selectfds(fd_set *readset, fd_set *writeset, int * max_fd);
 /* process fds to do something  */
 extern void ctl_processfds(fd_set *readset, fd_set *writeset);
 
-/* after reading cfg, create service controler */
-extern int ctl_service_mapcfg(struct cfg *cfg);
+/* after reading cfg, create account controlers */
+extern int ctl_account_mapcfg(struct cfg *cfg);
 
 /* after reading a new cfg, resync controler */
-extern int ctl_service_mapnewcfg(struct cfg *oldcfg,
+extern int ctl_account_mapnewcfg(struct cfg *oldcfg,
                                  const struct cfg *newcfg);
+
+extern struct accountctl *ctl_account_get(const char *accountname);
 
 /********* services.c *********/
 extern struct list_head service_list;
