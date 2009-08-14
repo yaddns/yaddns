@@ -15,7 +15,7 @@ CFLAGS		+= -DD_NAME="\"$(TGT)\"" -DD_VERSION="\"$(VERSION)\"" \
 		   -Wcast-qual -Wold-style-definition -Wmissing-noreturn \
 		   -Wstrict-prototypes -Waggregate-return -Wformat=2 \
 		   -Wswitch-default -Wundef -Wbad-function-cast \
-		   -Wunused-parameter -Wunsafe-loop-optimizations -Wpointer-arith \
+		   -Wunused-parameter -Wpointer-arith \
 		   -I./include
 LDFLAGS		+= -Wall
 LDLIBS		+= $(EXTRA_LIBS)
