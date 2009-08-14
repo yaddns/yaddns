@@ -181,7 +181,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         struct service *service = NULL;
         
         int c, ind;
-        char short_options[] = "vhlf:p:";
+        char short_options[] = "vhlf:p:D";
         struct option long_options [] = {
                 {"version", no_argument, 0, 'v' },
                 {"help", no_argument, 0, 'h' },
@@ -189,11 +189,13 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 /*{"daemon", no_argument, 0, 'D' },*/
                 {"cfg", required_argument, 0, 'f' },
                 {"pid-file", required_argument, 0, 'p' },
+                {"daemonize", required_argument, 0, 'D' },
                 {0, 0, 0, 0 }
         };
 
         cfg->optionsfile = NULL;
         cfg->pidfile = NULL;
+        cfg->daemonize = 0;
         
         while((c = getopt_long (argc, argv, 
                                 short_options, long_options, &ind)) != EOF)
@@ -226,6 +228,10 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                                 printf("  - %s\n", service->name);
                         }
                         return -1;
+                        
+                case 'D':
+                        cfg->daemonize = 1;
+                        break;
                         
                 case 'p':
                         cfg->pidfile = strdup(optarg);
@@ -487,6 +493,7 @@ void config_print(struct cfg *cfg)
         printf("Configuration:\n");
         printf(" cfg file = '%s'\n", cfg->optionsfile);
         printf(" pid file = '%s'\n", cfg->pidfile);
+        printf(" daemonize = '%d'\n", cfg->daemonize);
         printf(" wan ifname = '%s'\n", cfg->wan_ifname);
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
         

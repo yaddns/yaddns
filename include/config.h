@@ -13,6 +13,7 @@ struct cfg {
         char *wan_ifname;
         char *optionsfile;
         char *pidfile;
+        int daemonize;
         struct list_head accountcfg_list;
 };
 

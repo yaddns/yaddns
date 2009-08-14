@@ -52,7 +52,17 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
-	
+
+        /* daemonize ? */
+        if(cfg.daemonize)
+        {
+                if(daemon(0, 0) < 0)
+                {
+                        log_error("Failed to daemonize !");
+                        return 1;
+                }
+        }
+        
 	/* open log */
 	log_open();
 
