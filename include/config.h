@@ -12,6 +12,7 @@ struct cfg {
         int wan_cnt_type;
         char *wan_ifname;
         char *optionsfile;
+        char *pidfile;
         struct list_head accountcfg_list;
 };
 

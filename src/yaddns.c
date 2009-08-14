@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "config.h"
@@ -39,6 +40,7 @@ int main(int argc, char **argv)
         struct accountctl *accountctl = NULL;
 	fd_set readset, writeset;
 	int max_fd = -1;
+	FILE *fpid = NULL;
         
         /* init */
         ctl_init();
@@ -78,6 +80,23 @@ int main(int argc, char **argv)
 		ret = 1;
 		goto exit_clean;
 	}
+
+        /* create pid file ? */
+        if(cfg.pidfile != NULL)
+        {
+                if((fpid = fopen(cfg.pidfile, "w")))
+                {
+                        fprintf(fpid, "%u", getpid());
+                        fclose(fpid);
+                        fpid = NULL;
+                }
+                else
+                {
+                        log_error("Failed to create pidfile %s: %m",
+                                  cfg.pidfile);
+                        goto exit_clean;
+                }
+        }
 
         /* create account ctls */
         if(ctl_account_mapcfg(&cfg) != 0)

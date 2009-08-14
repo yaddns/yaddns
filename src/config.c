@@ -181,16 +181,20 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         struct service *service = NULL;
         
         int c, ind;
-        char short_options[] = "vhlf:";
+        char short_options[] = "vhlf:p:";
         struct option long_options [] = {
                 {"version", no_argument, 0, 'v' },
                 {"help", no_argument, 0, 'h' },
                 {"list-service", no_argument, 0, 'l' },
                 /*{"daemon", no_argument, 0, 'D' },*/
                 {"cfg", required_argument, 0, 'f' },
+                {"pid-file", required_argument, 0, 'p' },
                 {0, 0, 0, 0 }
         };
 
+        cfg->optionsfile = NULL;
+        cfg->pidfile = NULL;
+        
         while((c = getopt_long (argc, argv, 
                                 short_options, long_options, &ind)) != EOF)
         {
@@ -200,9 +204,10 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         break;
 
                 case 'h':
-                        printf("Usage: %s [-f cfg_filename]\n", argv[0]);
+                        printf("Usage: %s [-f cfg_filename] [-p pid_file]\n", argv[0]);
                         printf("Options:\n");
                         printf(" -f, --cfg=FILE\t\tConfig file to be used\n");
+                        printf(" -p, --pid-file=FILE\tPID file to be used\n");
                         printf(" -h, --help\t\tDisplay this help\n");
                         printf(" -l, --list-service\tDisplay the "
                                "list of available services\n");
@@ -221,6 +226,10 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                                 printf("  - %s\n", service->name);
                         }
                         return -1;
+                        
+                case 'p':
+                        cfg->pidfile = strdup(optarg);
+                        break;
                         
                 case 'f':
                         cfg->optionsfile = strdup(optarg);
@@ -453,6 +462,7 @@ int config_free(struct cfg *cfg)
         
         CFG_FREE(cfg->wan_ifname);
         CFG_FREE(cfg->optionsfile);
+        CFG_FREE(cfg->pidfile);
         
         list_for_each_entry_safe(accountcfg, safe, 
                                  &(cfg->accountcfg_list), list) 
@@ -476,6 +486,7 @@ void config_print(struct cfg *cfg)
         
         printf("Configuration:\n");
         printf(" cfg file = '%s'\n", cfg->optionsfile);
+        printf(" pid file = '%s'\n", cfg->pidfile);
         printf(" wan ifname = '%s'\n", cfg->wan_ifname);
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
         
