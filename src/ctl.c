@@ -123,11 +123,6 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
 
 static int ctl_getifaddr(const char *ifname, struct in_addr *addr)
 {
-#if 1
-        UNUSED(ifname);
-        
-        inet_aton("91.121.120.56", addr);
-#else
         /* SIOCGIFADDR struct ifreq *  */
 	int s;
 	struct ifreq ifr;
@@ -158,7 +153,6 @@ static int ctl_getifaddr(const char *ifname, struct in_addr *addr)
 	*addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
 
 	close(s);
-#endif
 
 	return 0;
 }
@@ -167,6 +161,7 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 {
 	int flags;
         struct updatepkt *updatepkt = NULL;
+	struct sockaddr_in sockname;
         
         updatepkt = calloc(1, sizeof(struct updatepkt));
         if(updatepkt == NULL)
@@ -195,9 +190,10 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 		goto exit_error;
         }
 
-#if 1
-        UNUSED(addr);
-#else
+        memset(&sockname, 0, sizeof(struct sockaddr_in));
+        sockname.sin_family = AF_INET;
+        sockname.sin_addr.s_addr = htonl(addr->s_addr);
+
         if(bind(updatepkt->s, 
                 (struct sockaddr *)addr, 
                 (socklen_t)sizeof(struct sockaddr_in)) < 0)
@@ -205,7 +201,6 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 		log_error("bind(): %m");
 		goto exit_error;
 	}
-#endif
    
         log_debug("updatepkt created: %p", updatepkt);
         

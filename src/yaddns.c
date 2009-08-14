@@ -9,8 +9,8 @@
 #include "ctl.h"
 #include "util.h"
 
-int quitting = 0;
-int reloadconf = 0;
+volatile int quitting = 0;
+volatile int reloadconf = 0;
 struct timeval timeofday = {0, 0};
 
 static void sighdl(int signum)
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
                                 continue;
                         }
 
-                        /* TODO, very serious cause of error */
+                        /* very serious cause of error */
                         log_critical("select failed ! %m");
                         ret = 1;
                         break;

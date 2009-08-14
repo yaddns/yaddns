@@ -225,6 +225,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 case 'f':
                         cfg->optionsfile = strdup(optarg);
                         optionsfile_flag = 1;
+                        break;
                         
                 default:
                         break;
