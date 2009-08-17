@@ -12,6 +12,7 @@
 
 volatile int quitting = 0;
 volatile int reloadconf = 0;
+volatile int wakeup = 0;
 struct timeval timeofday = {0, 0};
 
 static void sighdl(int signum)
@@ -25,6 +26,11 @@ static void sighdl(int signum)
         {
                 log_notice("Receive SIGHUP. Reload configuration.");
                 reloadconf = 1;
+        }
+        else if(signum == SIGUSR1)
+        {
+                log_notice("Receive SIGUSR1. Wake up !");
+                wakeup = 1;
         }
 
 }
@@ -87,6 +93,13 @@ int main(int argc, char **argv)
         if(sigaction(SIGHUP, &sa, NULL) != 0)
 	{
 		log_error("Failed to install signal handler for SIGHUP: %m");
+		ret = 1;
+		goto exit_clean;
+	}
+        
+        if(sigaction(SIGUSR1, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGUSR1: %m");
 		ret = 1;
 		goto exit_clean;
 	}
@@ -211,6 +224,12 @@ int main(int argc, char **argv)
                         
                         if(reloadconf)
                         {
+                                continue;
+                        }
+
+                        if(wakeup)
+                        {
+                                wakeup = 0;
                                 continue;
                         }
 

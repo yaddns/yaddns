@@ -9,7 +9,7 @@ EXTRA_LIBS	=
 
 # global vars
 CFLAGS		+= -DD_NAME="\"$(TGT)\"" -DD_VERSION="\"$(VERSION)\"" \
-                   -DD_INFO="\"$(INFO)\"" \
+                   -DD_INFO="\"$(INFO)\"" -DENABLE_SYSLOG \
 		   $(FPIC) -std=gnu99 -D_GNU_SOURCE \
 		   -Wall -Wextra -Werror -Wbad-function-cast -Wshadow \
 		   -Wcast-qual -Wold-style-definition -Wmissing-noreturn \
@@ -25,7 +25,7 @@ MAKEFLAGS	+= 'DEBUG=y'
 CFLAGS		+= -g -DDEBUG
 else
 MAKEFLAGS	+=
-CFLAGS		+= -Os -fomit-frame-pointer -DNDEBUG -DENABLE_SYSLOG
+CFLAGS		+= -Os -fomit-frame-pointer -DNDEBUG
 endif
 
 INSTALL		= /usr/bin/install
