@@ -176,7 +176,7 @@ static int dyndns_read(char *buffer,
                                         snprintf(report->custom_rc,
                                                  sizeof(report->custom_rc),
                                                  "%s",
-                                                 ptr);
+                                                 rc_map[n].code);
                                         snprintf(report->custom_rc_text,
                                                  sizeof(report->custom_rc_text),
                                                  "%s",

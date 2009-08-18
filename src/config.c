@@ -206,10 +206,11 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         break;
 
                 case 'h':
-                        printf("Usage: %s [-f cfg_filename] [-p pid_file]\n", argv[0]);
+                        printf("Usage: %s [-f cfg_filename] [-p pid_file] [-D]\n", argv[0]);
                         printf("Options:\n");
                         printf(" -f, --cfg=FILE\t\tConfig file to be used\n");
                         printf(" -p, --pid-file=FILE\tPID file to be used\n");
+                        printf(" -D, --daemonize\t\tDaemonize yaddns\n");
                         printf(" -h, --help\t\tDisplay this help\n");
                         printf(" -l, --list-service\tDisplay the "
                                "list of available services\n");
