@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -220,36 +221,65 @@ exit_error:
 
 static void ctl_connect(struct updatepkt *updatepkt)
 {
-	struct sockaddr_in addr;
-        struct hostent *host = NULL;
+        struct addrinfo hints;
+        struct addrinfo *res = NULL, *rp = NULL;
+        int e;
+        char serv[6];
+        int connected;
+
+        snprintf(serv, sizeof(serv), 
+                 "%d", updatepkt->ctl->def->portserv);
         
-        memset(&addr, 0, sizeof(struct sockaddr_in));
+        memset(&hints, '\0', sizeof(hints));
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_flags = AI_ADDRCONFIG;
         
-        if((host = gethostbyname(updatepkt->ctl->def->ipserv)) == NULL)
+        e = getaddrinfo(updatepkt->ctl->def->ipserv,
+                        serv,
+                        &hints,
+                        &res);
+        if(e != 0)
         {
-                log_error("gethostbyname() failed ! %s %d", 
-                          hstrerror(h_errno), h_errno);
+                log_error("getaddrinfo(%s, %s) failed: %s\n",
+                          updatepkt->ctl->def->ipserv, 
+                          updatepkt->ctl->def->portserv, 
+                          gai_strerror(e));
                 updatepkt->state = EError;
                 return;
         }
-
-        addr.sin_family = AF_INET;
-        addr.sin_addr = *(struct in_addr*)host->h_addr;
-        addr.sin_port = htons(updatepkt->ctl->def->portserv);
+        
 
         log_debug("connecting to %s:%d", 
                   updatepkt->ctl->def->ipserv, 
                   updatepkt->ctl->def->portserv);
         updatepkt->state = EConnecting;
-        
-        if(connect(updatepkt->s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+
+        for (rp = res; rp != NULL; rp = rp->ai_next) 
         {
-		if(errno != EINPROGRESS && errno != EWOULDBLOCK) 
+                if(connect(updatepkt->s, 
+                           rp->ai_addr, rp->ai_addrlen) == 0
+                   || (errno == EINPROGRESS || errno == EWOULDBLOCK))
                 {
-			log_error("connect(): %m");
-			updatepkt->state = EError;
-		}
-	}
+                        connected = 1;
+                        break;
+                }
+                else
+                {
+                        if(errno != EINPROGRESS && errno != EWOULDBLOCK) 
+                        {
+                                log_error("connect(): %m");
+                                updatepkt->state = EError;
+                        }
+                }
+        }
+
+        freeaddrinfo(res);
+
+        if(!connected)
+        {
+                log_error("Unable to connect !");
+                updatepkt->state = EError;
+        }
 }
 
 static void ctl_process(struct updatepkt *updatepkt)
