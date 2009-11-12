@@ -47,6 +47,7 @@ static void ctl_process_send(struct updatepkt *updatepkt)
         if(i < 0)
         {
                 log_error("send(): %d %m", errno);
+                updatepkt->state = EError;
                 return;
         }
         else if(i != (updatepkt->buf_tosend - updatepkt->buf_sent))
@@ -195,8 +196,10 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
         sockname.sin_family = AF_INET;
         sockname.sin_addr.s_addr = htonl(addr->s_addr);
 
+        log_debug("bind to %s", inet_ntoa(sockname.sin_addr));
+
         if(bind(updatepkt->s, 
-                (struct sockaddr *)addr, 
+                (struct sockaddr *)&sockname, 
                 (socklen_t)sizeof(struct sockaddr_in)) < 0)
 	{
 		log_error("bind(): %m");
@@ -226,6 +229,7 @@ static void ctl_connect(struct updatepkt *updatepkt)
         int e;
         char serv[6];
         int connected;
+        int ret;
 
         snprintf(serv, sizeof(serv), 
                  "%d", updatepkt->ctl->def->portserv);
@@ -256,20 +260,23 @@ static void ctl_connect(struct updatepkt *updatepkt)
 
         for (rp = res; rp != NULL; rp = rp->ai_next) 
         {
-                if(connect(updatepkt->s, 
-                           rp->ai_addr, rp->ai_addrlen) == 0
-                   || (errno == EINPROGRESS || errno == EWOULDBLOCK))
+                log_debug("try to connect to %s:%u ...",
+                          inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
+                          ((struct sockaddr_in*)rp->ai_addr)->sin_port);
+                
+                ret = connect(updatepkt->s, 
+                              rp->ai_addr, rp->ai_addrlen);
+                if(ret == 0)
                 {
                         connected = 1;
                         break;
                 }
-                else
+                else if(ret < 0 
+                        && (errno == EINPROGRESS || errno == EWOULDBLOCK)) 
                 {
-                        if(errno != EINPROGRESS && errno != EWOULDBLOCK) 
-                        {
-                                log_error("connect(): %m");
-                                updatepkt->state = EError;
-                        }
+                        log_notice("connect(): %m.");
+                        connected = 1;
+                        break;
                 }
         }
 
@@ -288,9 +295,16 @@ static void ctl_process(struct updatepkt *updatepkt)
         {
 	case EConnecting:
 	case ESending:
+                log_debug("ctl_process &updatepkt:%p - state:%d - socket:%d"
+                          "match 'case EConnecting case ESending'",
+                          updatepkt, updatepkt->state, updatepkt->s);
+                
 		ctl_process_send(updatepkt);
                 if(updatepkt->state != EFinished)
                 {
+                        log_debug("ctl_process &updatepkt:%p - state:%d - "
+                                  "socket:%d (updatepkt->state != EFinished)",
+                                  updatepkt, updatepkt->state, updatepkt->s);
                         break;
                 }
 	case EFinished:
@@ -339,7 +353,8 @@ void ctl_free(void)
 /*
  * create updatepkt if:
  * - wan ip has changed and the service isn't locked of freezed
- * - (dyndns spec) 28 days after last update if IP no changed yet
+ * - 28 days after last update if IP no changed yet otherwise dyndns server
+ *   don't know we are still alive
  */
 void ctl_preselect(struct cfg *cfg)
 {
@@ -377,26 +392,6 @@ void ctl_preselect(struct cfg *cfg)
 
                 wanip.s_addr = curr_wanip.s_addr;
         }
-        
-        /****** 28 days after last update ******/
-        list_for_each_entry(accountctl, 
-                            &(accountctl_list), list) 
-        {
-                if(!accountctl->updated)
-                {
-                        continue;
-                }
-                
-                log_debug("last update: %d, timeofday: %d",
-                          accountctl->last_update.tv_sec,
-                          timeofday.tv_sec);
-                if(timeofday.tv_sec - accountctl->last_update.tv_sec
-                   >= 2419200)
-                {
-                        log_notice("re-update service after 28 beautiful days");
-                        accountctl->updated = 0;
-                }
-        }
 
         /*********************/
         
@@ -408,7 +403,20 @@ void ctl_preselect(struct cfg *cfg)
                 {
                         continue;
                 }
-                        
+                
+                if(accountctl->updated
+                   && timeofday.tv_sec - accountctl->last_update.tv_sec
+                   >= 2419200)
+                {
+                        /*
+                         * 28 days after last update, we need to send an updatepkt
+                         * otherwise dyndns server don't know we are still alive
+                         * and desactive the account.
+                         */
+                        log_notice("re-update service after 28 beautiful days");
+                        accountctl->updated = 0;
+                }
+
                 if(!accountctl->updated && accountctl->status != SWorking)
                 {
                         log_debug("Account '%s' service '%s' need to update !",
@@ -498,6 +506,8 @@ void ctl_processfds(fd_set *readset, fd_set *writeset)
                    && (FD_ISSET(updatepkt->s, readset)
                        || FD_ISSET(updatepkt->s, writeset)))
                 {
+                        log_debug("&updatepkt:%p - state:%d - socket:%d",
+                                  updatepkt, updatepkt->state, updatepkt->s);
                         ctl_process(updatepkt);
                 }
         }
