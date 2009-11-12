@@ -228,7 +228,7 @@ static void ctl_connect(struct updatepkt *updatepkt)
         struct addrinfo *res = NULL, *rp = NULL;
         int e;
         char serv[6];
-        int connected;
+        int connected = 0;
         int ret;
 
         snprintf(serv, sizeof(serv), 
@@ -252,12 +252,12 @@ static void ctl_connect(struct updatepkt *updatepkt)
                 return;
         }
         
-
         log_debug("connecting to %s:%d", 
                   updatepkt->ctl->def->ipserv, 
                   updatepkt->ctl->def->portserv);
         updatepkt->state = EConnecting;
 
+        connected = 0;
         for (rp = res; rp != NULL; rp = rp->ai_next) 
         {
                 log_debug("try to connect to %s:%u ...",
