@@ -1,6 +1,6 @@
 # custom vars
 TGT		:= yaddns
-VERSION		:= 0.2
+VERSION		:= 0.1.1
 INFO		:= http://gna.org/projects/yaddns
 
 SERVICES	= dyndns
@@ -29,7 +29,7 @@ CFLAGS		+= -Os -fomit-frame-pointer -DNDEBUG
 endif
 
 INSTALL		= /usr/bin/install
-ROOT		= /usr/sbin
+DESTDIR		= /usr/sbin
 
 # files
 core_sources	:= src/services.c $(wildcard src/*.c)
@@ -68,8 +68,8 @@ src/services.c:
 
 .PHONY: install
 install:
-	$(INSTALL) -d $(ROOT)/usr/bin
-	$(INSTALL) -m 770 $(TGT) $(ROOT)/usr/bin/
+	$(INSTALL) -d $(DESTDIR)/usr/bin
+	$(INSTALL) -m 770 $(TGT) $(DESTDIR)/usr/bin/
 
 .PHONY: clean
 clean:
