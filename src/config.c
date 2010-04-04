@@ -218,7 +218,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         return -1;
                         
                 case 'v':
-                        printf(PACKAGE_STRING "\n");
+                        printf(D_NAME " - version " D_VERSION "\n");
                         return -1;
 
                 case 'l':
