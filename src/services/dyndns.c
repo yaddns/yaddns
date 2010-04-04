@@ -140,7 +140,7 @@ static int dyndns_write(const struct accountcfg cfg,
 		 " HTTP/1.1\r\n"
 		 "Host: " DYNDNS_HOST "\r\n"
 		 "Authorization: Basic %s\r\n"
-		 "User-Agent: " D_NAME "/" D_VERSION " - " D_INFO "\r\n"
+		 "User-Agent: " PACKAGE "/" VERSION "\r\n"
 		 "Connection: close\r\n"
 		 "Pragma: no-cache\r\n\r\n",
 		 cfg.hostname,
