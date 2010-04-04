@@ -1,0 +1,29 @@
+ Yaddns (c) Anthony Viallard
+=============================
+
+Compilation/Installation
+------------------------
+
+ ./configure
+ make
+ make install
+
+License
+-------
+
+View COPYING file
+
+Trac/Docs/Bug reports
+---------------------
+
+ http://patatrac.info/yaddns
+
+Svn
+---
+
+ svn://patatrac.info/yaddns
+
+Contact
+-------
+
+ * Viallard Anthony <avd@patatrac.info>
