@@ -17,9 +17,10 @@
  */
 
 #include "util.h"
+#include "log.h"
 
 #include <stdlib.h>
-#include <sys/sysinfo.h>
+#include <time.h>
 
 int util_base64_encode(const char *src, char **output, size_t *output_size)
 {
@@ -70,10 +71,16 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 
 void util_getuptime(struct timeval *tv)
 {
-        struct sysinfo si;
-
-	sysinfo( &si );
-
-	tv->tv_sec = si.uptime;
+	struct timespec tp;
+	
+        if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0) 
+	{
+		log_error("Error getting clock %m !");
+		tv->tv_sec = 0;
+		tv->tv_usec = 0;
+		return;
+	}
+	
+	tv->tv_sec = tp.tv_sec;
 	tv->tv_usec = 0;
 }

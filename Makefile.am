@@ -1,4 +1,5 @@
 INCLUDES=-I$(srcdir)/include/
+LDADD=-lrt
 
 bin_PROGRAMS=yaddns
 

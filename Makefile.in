@@ -52,6 +52,7 @@ am_yaddns_OBJECTS = config.$(OBJEXT) ctl.$(OBJEXT) log.$(OBJEXT) \
 	dyndns.$(OBJEXT)
 yaddns_OBJECTS = $(am_yaddns_OBJECTS)
 yaddns_LDADD = $(LDADD)
+yaddns_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -157,6 +158,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I$(srcdir)/include/
+LDADD = -lrt
 yaddns_SOURCES = src/config.c src/ctl.c src/log.c src/util.c src/yaddns.c \
 	src/services.c src/services/dyndns.c
 
