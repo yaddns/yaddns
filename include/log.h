@@ -21,6 +21,8 @@
 
 #include <syslog.h>
 
+#include "config.h"
+
 #define EOL "\n"
 
 /* colors for VT102 terminal */
@@ -105,7 +107,7 @@
 /*
  * open/configure log system
  */
-extern void log_open(void);
+extern void log_open( const struct cfg *cfg );
 
 /*
  * close log system.

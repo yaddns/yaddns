@@ -4,18 +4,24 @@
 
 #include "log.h"
 
-void log_open(void)
+static int use_syslog = 0;
+
+void log_open(const struct cfg *cfg)
 {
-#ifdef ENABLE_SYSLOG
-	openlog("yaddns", LOG_CONS, LOG_DAEMON);
-#endif
+	use_syslog = cfg->daemonize;
+
+	if(use_syslog)
+	{
+		openlog("yaddns", LOG_CONS, LOG_DAEMON);
+	}
 }
 
 void log_close(void)
 {
-#ifdef ENABLE_SYSLOG
-	closelog();
-#endif
+	if(use_syslog)
+	{
+		closelog();
+	}
 }
 
 void log_it(int priority, char const *format, ...)
@@ -23,11 +29,16 @@ void log_it(int priority, char const *format, ...)
 	va_list ap;
 
 	va_start(ap, format);
-#ifdef ENABLE_SYSLOG
-	vsyslog(priority, format, ap);
-#else
-	(void)(priority);
-	vprintf(format, ap);
-#endif
+
+	if(use_syslog)
+	{
+		vsyslog(priority, format, ap);
+	}
+	else
+	{
+		(void)(priority);
+		vprintf(format, ap);
+	}
+
 	va_end(ap);
 }

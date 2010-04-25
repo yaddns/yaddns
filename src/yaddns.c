@@ -59,6 +59,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	/* open log */
+	log_open(&cfg);
+
         /* daemonize ? */
         if(cfg.daemonize)
         {
@@ -68,9 +71,6 @@ int main(int argc, char **argv)
                         return 1;
                 }
         }
-        
-	/* open log */
-	log_open();
 
 	/* sighandler */
 	memset(&sa, 0, sizeof(struct sigaction));
