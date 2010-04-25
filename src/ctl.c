@@ -194,7 +194,7 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 
         memset(&sockname, 0, sizeof(struct sockaddr_in));
         sockname.sin_family = AF_INET;
-        sockname.sin_addr.s_addr = htonl(addr->s_addr);
+        sockname.sin_addr.s_addr = addr->s_addr;
 
         log_debug("bind to %s", inet_ntoa(sockname.sin_addr));
 
