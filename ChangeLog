@@ -1,0 +1,3 @@
+yaddns 0.1.2:
+	* fix signals handling
+	* improve portability with autotools
