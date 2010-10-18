@@ -181,7 +181,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = src
-EXTRA_DIST = etc/yaddns.conf
+EXTRA_DIST = autogen.sh etc/yaddns.conf
 all: all-recursive
 
 .SUFFIXES:
