@@ -10,12 +10,13 @@
 #include "ctl.h"
 #include "util.h"
 
-volatile int quitting = 0;
-volatile int reloadconf = 0;
-volatile int wakeup = 0;
+volatile sig_atomic_t quitting = 0;
+volatile sig_atomic_t reloadconf = 0;
+volatile sig_atomic_t wakeup = 0;
+
 struct timeval timeofday = {0, 0};
 
-static void sighdl(int signum)
+static void sig_handler(int signum)
 {
 	if(signum == SIGTERM || signum == SIGINT)
 	{
@@ -32,17 +33,65 @@ static void sighdl(int signum)
                 log_notice("Receive SIGUSR1. Wake up !");
                 wakeup = 1;
         }
+}
 
+static int sig_setup(void)
+{
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(struct sigaction));
+	sa.sa_handler = sig_handler;
+
+	if(sigaction(SIGTERM, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGTERM: %m");
+		return -1;
+	}
+	
+	if(sigaction(SIGINT, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGINT: %m");
+		return -1;
+	}
+        
+        if(sigaction(SIGHUP, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGHUP: %m");
+		return -1;
+	}
+        
+        if(sigaction(SIGUSR1, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGUSR1: %m");
+		return -1;
+	}
+
+        return 0;
+}
+
+static void sig_blockall(void)
+{
+	sigset_t set;
+
+	sigfillset(&set);
+	sigprocmask(SIG_BLOCK, &set, NULL);
+}
+
+static void sig_unblockall(void)
+{
+	sigset_t set;
+
+	sigfillset(&set);
+	sigprocmask(SIG_UNBLOCK, &set, NULL);
 }
 
 int main(int argc, char **argv)
 {
 	int ret = 0;
-	struct sigaction sa;
+        sigset_t unblocked;
         struct cfg cfg, cfgre;
-
-        struct timeval timeout = {0, 0}, 
-                lasttimeofday = {0, 0};
+        struct timespec timeout = {0, 0};
+        struct timeval lasttimeofday = {0, 0};
         struct accountctl *accountctl = NULL;
 	fd_set readset, writeset;
 	int max_fd = -1;
@@ -72,37 +121,16 @@ int main(int argc, char **argv)
                 }
         }
 
-	/* sighandler */
-	memset(&sa, 0, sizeof(struct sigaction));
-	sa.sa_handler = sighdl;
+        /* sig setup */
+        if(sig_setup() != 0)
+        {
+                ret = 1;
+                goto exit_clean;
+        }
 
-	if(sigaction(SIGTERM, &sa, NULL) != 0)
-	{
-		log_error("Failed to install signal handler for SIGTERM: %m");
-		ret = 1;
-		goto exit_clean;
-	}
-	
-	if(sigaction(SIGINT, &sa, NULL) != 0)
-	{
-		log_error("Failed to install signal handler for SIGINT: %m");
-		ret = 1;
-		goto exit_clean;
-	}
-        
-        if(sigaction(SIGHUP, &sa, NULL) != 0)
-	{
-		log_error("Failed to install signal handler for SIGHUP: %m");
-		ret = 1;
-		goto exit_clean;
-	}
-        
-        if(sigaction(SIGUSR1, &sa, NULL) != 0)
-	{
-		log_error("Failed to install signal handler for SIGUSR1: %m");
-		ret = 1;
-		goto exit_clean;
-	}
+        sig_blockall();
+
+        sigemptyset(&unblocked);
 
         /* create pid file ? */
         if(cfg.pidfile != NULL)
@@ -212,8 +240,10 @@ int main(int argc, char **argv)
                 
                 /* select */
                 log_debug("select !");
-                
-                if(select(max_fd + 1, &readset, &writeset, 0, &timeout) < 0)
+
+                if(pselect(max_fd + 1,
+                           &readset, &writeset, NULL,
+                           &timeout, &unblocked) < 0)
                 {
                         /* error or interuption */
                         
@@ -252,6 +282,8 @@ int main(int argc, char **argv)
         ctl_free();
 
 exit_clean:
+        sig_unblockall();
+
 	/* close log */
 	log_close();
 
