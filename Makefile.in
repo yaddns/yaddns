@@ -171,6 +171,7 @@ yaddns_SOURCES = src/yaddns.c \
 	src/services.c \
 	src/services/dyndns.c
 
+EXTRA_DIST = etc/yaddns.conf
 all: all-am
 
 .SUFFIXES:

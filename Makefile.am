@@ -11,3 +11,5 @@ yaddns_SOURCES = src/yaddns.c \
 	include/list.h include/service.h \
 	src/services.c \
 	src/services/dyndns.c
+
+EXTRA_DIST = etc/yaddns.conf
