@@ -27,7 +27,7 @@
 
 static char *strdup_trim (const char *s)
 {
-        size_t begin, end;
+        size_t begin, end, len;
         char *r = NULL;
 
         if (!s)
@@ -52,7 +52,14 @@ static char *strdup_trim (const char *s)
                 }
         }
 
-        r = strndup (s + begin, end - begin + 1);
+        len = end - begin;
+
+        r = malloc(len + 1);
+        if(r != NULL)
+        {
+                strncpy(r, s + begin, len);
+                r[len] = '\0';
+        }
 
         return r;
 }
@@ -177,7 +184,7 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
 
 int config_parse(struct cfg *cfg, int argc, char **argv)
 {
-        int optionsfile_flag = 0;
+        int cfgfile_flag = 0;
         struct service *service = NULL;
         
         int c, ind;
@@ -193,7 +200,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 {0, 0, 0, 0 }
         };
 
-        cfg->optionsfile = NULL;
+        cfg->cfgfile = NULL;
         cfg->pidfile = NULL;
         cfg->daemonize = 0;
         
@@ -239,8 +246,8 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         break;
                         
                 case 'f':
-                        cfg->optionsfile = strdup(optarg);
-                        optionsfile_flag = 1;
+                        cfg->cfgfile = strdup(optarg);
+                        cfgfile_flag = 1;
                         break;
                         
                 default:
@@ -250,14 +257,14 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
 
         cfg->wan_cnt_type = wan_cnt_direct;
         cfg->wan_ifname = NULL;
-        if(cfg->optionsfile == NULL)
+        if(cfg->cfgfile == NULL)
         {
-                cfg->optionsfile = strdup(CFG_DEFAULT_FILENAME);
+                cfg->cfgfile = strdup(CFG_DEFAULT_FILENAME);
         }
         
-        if(config_parse_file(cfg, cfg->optionsfile) != 0)
+        if(config_parse_file(cfg, cfg->cfgfile) != 0)
         {
-                if(access(cfg->optionsfile, F_OK) == 0 || optionsfile_flag)
+                if(access(cfg->cfgfile, F_OK) == 0 || cfgfile_flag)
                 {
                         config_free(cfg);
                         return -1;
@@ -468,7 +475,7 @@ int config_free(struct cfg *cfg)
                 *safe = NULL;
         
         CFG_FREE(cfg->wan_ifname);
-        CFG_FREE(cfg->optionsfile);
+        CFG_FREE(cfg->cfgfile);
         CFG_FREE(cfg->pidfile);
         
         list_for_each_entry_safe(accountcfg, safe, 
@@ -492,7 +499,7 @@ void config_print(struct cfg *cfg)
         struct accountcfg *accountcfg = NULL;
         
         printf("Configuration:\n");
-        printf(" cfg file = '%s'\n", cfg->optionsfile);
+        printf(" cfg file = '%s'\n", cfg->cfgfile);
         printf(" pid file = '%s'\n", cfg->pidfile);
         printf(" daemonize = '%d'\n", cfg->daemonize);
         printf(" wan ifname = '%s'\n", cfg->wan_ifname);
