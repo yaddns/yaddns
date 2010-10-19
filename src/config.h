@@ -11,7 +11,7 @@ enum wan_cnt_type {
 struct cfg {
         int wan_cnt_type;
         char *wan_ifname;
-        char *optionsfile;
+        char *cfgfile;
         char *pidfile;
         int daemonize;
         struct list_head accountcfg_list;

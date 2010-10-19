@@ -171,7 +171,7 @@ int main(int argc, char **argv)
                         
                         memset(&cfgre, 0, sizeof(struct cfg));
                         
-                        if(config_parse_file(&cfgre, cfg.optionsfile) == 0)
+                        if(config_parse_file(&cfgre, cfg.cfgfile) == 0)
                         {
                                 if(ctl_account_mapnewcfg(&cfg, &cfgre) == 0)
                                 {
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                                         }
 
                                         /* use new configuration */
-                                        cfgre.optionsfile = strdup(cfg.optionsfile);
+                                        cfgre.cfgfile = strdup(cfg.cfgfile);
                                         
                                         config_free(&cfg);
                                         config_copy(&cfg, &cfgre);
