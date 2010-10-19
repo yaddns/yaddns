@@ -1,6 +1,11 @@
  Yaddns (c) Anthony Viallard
 =============================
 
+Generating compilation tools with autotools
+-------------------------------------------
+
+ ./autogen.sh
+
 Compilation/Installation
 ------------------------
 
