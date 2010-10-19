@@ -8,37 +8,37 @@
 #include "service.h"
 
 struct accountctl {
-enum {
-SError = -1,
-SOk = 1,
-SWorking,
-} status;
-struct service *def;
-struct accountcfg *cfg;
-struct timeval last_update;
-int updated; /* account is updated ? */
-int locked;
-int freezed;
-struct timeval freeze_time;
-struct timeval freeze_interval;
-struct list_head list;
+	enum {
+                SError = -1,
+                SOk = 1,
+                SWorking,
+        } status;
+        struct service *def;
+	struct accountcfg *cfg;
+	struct timeval last_update;
+        int updated; /* account is updated ? */
+	int locked;
+	int freezed;
+	struct timeval freeze_time;
+	struct timeval freeze_interval;
+        struct list_head list;
 };
 
 struct updatepkt {
-struct accountctl *ctl;
-int s; /* socket */
-enum {
-ECreated,
-EConnecting,
-ESending,
-EWaitingForResponse,
-EFinished,
-EError,
-} state;
-char buf[512];
-ssize_t buf_tosend;
-ssize_t buf_sent;
-struct list_head list;
+        struct accountctl *ctl;
+        int s; /* socket */
+        enum {
+                ECreated,
+                EConnecting,
+                ESending,
+                EWaitingForResponse,
+                EFinished,
+                EError,
+        } state;
+        char buf[512];
+        ssize_t buf_tosend;
+        ssize_t buf_sent;
+        struct list_head list;
 };
 
 /********* ctl.c *********/
@@ -64,7 +64,7 @@ extern int ctl_account_mapcfg(struct cfg *cfg);
 
 /* after reading a new cfg, resync controler */
 extern int ctl_account_mapnewcfg(struct cfg *oldcfg,
-const struct cfg *newcfg);
+                                 const struct cfg *newcfg);
 
 extern struct accountctl *ctl_account_get(const char *accountname);
 
