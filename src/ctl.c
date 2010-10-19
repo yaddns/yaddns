@@ -39,7 +39,7 @@ static void ctl_process_send(struct updatepkt *updatepkt)
                   updatepkt->s,
                   updatepkt->buf_tosend - updatepkt->buf_sent,
                   updatepkt->buf + updatepkt->buf_sent);
-        
+
         i = send(updatepkt->s,
                  updatepkt->buf + updatepkt->buf_sent,
                  updatepkt->buf_tosend - updatepkt->buf_sent,
@@ -52,7 +52,7 @@ static void ctl_process_send(struct updatepkt *updatepkt)
         }
         else if(i != (updatepkt->buf_tosend - updatepkt->buf_sent))
         {
-                log_notice("%d bytes send out of %d", 
+                log_notice("%d bytes send out of %d",
                            i, updatepkt->buf_tosend);
         }
 
@@ -70,7 +70,7 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
         int n, ret;
         struct upreply_report report;
 
-        n = recv(updatepkt->s, 
+        n = recv(updatepkt->s,
                  updatepkt->buf, sizeof(updatepkt->buf), 0);
         if(n < 0)
         {
@@ -80,9 +80,9 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
         }
 
         log_debug("Recv %u bytes: %.*s", n, n, updatepkt->buf);
-        
+
         ret = updatepkt->ctl->def->read_resp(updatepkt->buf, &report);
-        
+
         if(ret != 0)
         {
                 log_error("Unknown error when reading response.");
@@ -95,7 +95,7 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
                 {
                         log_info("update success for account '%s'",
                                  updatepkt->ctl->cfg->name);
-                        
+
                         updatepkt->ctl->status = SOk;
                         updatepkt->ctl->updated = 1;
                         updatepkt->ctl->last_update.tv_sec
@@ -106,20 +106,20 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
                         log_notice("update failed for account '%s' (rc=%d)",
                                    updatepkt->ctl->cfg->name,
                                    report.code);
-                        
+
                         updatepkt->ctl->status = SError;
                         updatepkt->ctl->locked = report.rcmd_lock;
                         if(report.rcmd_freeze)
                         {
                                 updatepkt->ctl->freezed = 1;
-                                updatepkt->ctl->freeze_time.tv_sec 
+                                updatepkt->ctl->freeze_time.tv_sec
                                         = timeofday.tv_sec;
-                                updatepkt->ctl->freeze_interval.tv_sec 
+                                updatepkt->ctl->freeze_interval.tv_sec
                                         = report.rcmd_freezetime;
                         }
                 }
         }
-        
+
 	updatepkt->state = EFinished;
 }
 
@@ -132,14 +132,14 @@ static int ctl_getifaddr(const char *ifname, struct in_addr *addr)
 
 	if(!ifname || ifname[0]=='\0')
 		return -1;
-        
+
 	s = socket(PF_INET, SOCK_DGRAM, 0);
 	if(s < 0)
 	{
 		log_error("socket(PF_INET, SOCK_DGRAM): %m");
 		return -1;
 	}
-        
+
         memset(&ifr, 0, sizeof(ifr));
         ifr.ifr_addr.sa_family = AF_INET; /* IPv4 IP address */
 	strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
@@ -151,7 +151,7 @@ static int ctl_getifaddr(const char *ifname, struct in_addr *addr)
 		close(s);
 		return -1;
 	}
-        
+
 	*addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
 
 	close(s);
@@ -164,7 +164,7 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 	int flags;
         struct updatepkt *updatepkt = NULL;
 	struct sockaddr_in sockname;
-        
+
         updatepkt = calloc(1, sizeof(struct updatepkt));
         if(updatepkt == NULL)
         {
@@ -180,13 +180,13 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
                 goto exit_error;
         }
 
-        
-        if((flags = fcntl(updatepkt->s, F_GETFL, 0)) < 0) 
+
+        if((flags = fcntl(updatepkt->s, F_GETFL, 0)) < 0)
         {
 		log_error("fcntl(..F_GETFL..): %m");
 		goto exit_error;
 	}
-        
+
 	if(fcntl(updatepkt->s, F_SETFL, flags | O_NONBLOCK) < 0) {
 		log_error("fcntl(..F_SETFL..): %m");
 		goto exit_error;
@@ -198,26 +198,26 @@ static struct updatepkt *ctl_create_updatepkt(struct in_addr *addr)
 
         log_debug("bind to %s", inet_ntoa(sockname.sin_addr));
 
-        if(bind(updatepkt->s, 
-                (struct sockaddr *)&sockname, 
+        if(bind(updatepkt->s,
+                (struct sockaddr *)&sockname,
                 (socklen_t)sizeof(struct sockaddr_in)) < 0)
 	{
 		log_error("bind(): %m");
 		goto exit_error;
 	}
-   
+
         log_debug("updatepkt created: %p", updatepkt);
-        
+
         list_add(&(updatepkt->list), &updatepkt_list);
-        
+
         return updatepkt;
-        
+
 exit_error:
         if(updatepkt->s >= 0)
         {
                 close(updatepkt->s);
         }
-        
+
         free(updatepkt);
         return NULL;
 }
@@ -231,13 +231,13 @@ static void ctl_connect(struct updatepkt *updatepkt)
         int connected = 0;
         int ret;
 
-        snprintf(serv, sizeof(serv), 
+        snprintf(serv, sizeof(serv),
                  "%d", updatepkt->ctl->def->portserv);
-        
+
         memset(&hints, '\0', sizeof(hints));
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_flags = AI_ADDRCONFIG;
-        
+
         e = getaddrinfo(updatepkt->ctl->def->ipserv,
                         serv,
                         &hints,
@@ -245,34 +245,34 @@ static void ctl_connect(struct updatepkt *updatepkt)
         if(e != 0)
         {
                 log_error("getaddrinfo(%s, %s) failed: %s\n",
-                          updatepkt->ctl->def->ipserv, 
-                          updatepkt->ctl->def->portserv, 
+                          updatepkt->ctl->def->ipserv,
+                          updatepkt->ctl->def->portserv,
                           gai_strerror(e));
                 updatepkt->state = EError;
                 return;
         }
-        
-        log_debug("connecting to %s:%d", 
-                  updatepkt->ctl->def->ipserv, 
+
+        log_debug("connecting to %s:%d",
+                  updatepkt->ctl->def->ipserv,
                   updatepkt->ctl->def->portserv);
         updatepkt->state = EConnecting;
 
         connected = 0;
-        for (rp = res; rp != NULL; rp = rp->ai_next) 
+        for (rp = res; rp != NULL; rp = rp->ai_next)
         {
                 log_debug("try to connect to %s:%u ...",
                           inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
                           ((struct sockaddr_in*)rp->ai_addr)->sin_port);
-                
-                ret = connect(updatepkt->s, 
+
+                ret = connect(updatepkt->s,
                               rp->ai_addr, rp->ai_addrlen);
                 if(ret == 0)
                 {
                         connected = 1;
                         break;
                 }
-                else if(ret < 0 
-                        && (errno == EINPROGRESS || errno == EWOULDBLOCK)) 
+                else if(ret < 0
+                        && (errno == EINPROGRESS || errno == EWOULDBLOCK))
                 {
                         log_notice("connect(): %m.");
                         connected = 1;
@@ -291,14 +291,14 @@ static void ctl_connect(struct updatepkt *updatepkt)
 
 static void ctl_process(struct updatepkt *updatepkt)
 {
-        switch(updatepkt->state) 
+        switch(updatepkt->state)
         {
 	case EConnecting:
 	case ESending:
                 log_debug("ctl_process &updatepkt:%p - state:%d - socket:%d"
                           "match 'case EConnecting case ESending'",
                           updatepkt, updatepkt->state, updatepkt->s);
-                
+
 		ctl_process_send(updatepkt);
                 if(updatepkt->state != EFinished)
                 {
@@ -334,16 +334,16 @@ void ctl_free(void)
                 *safe_actl = NULL;
         struct updatepkt *updatepkt = NULL,
                 *safe_upkt = NULL;
-        
-        list_for_each_entry_safe(accountctl, safe_actl, 
-                                 &(accountctl_list), list) 
+
+        list_for_each_entry_safe(accountctl, safe_actl,
+                                 &(accountctl_list), list)
         {
                 list_del(&(accountctl->list));
                 free(accountctl);
         }
-        
-        list_for_each_entry_safe(updatepkt, safe_upkt, 
-                                 &(updatepkt_list), list) 
+
+        list_for_each_entry_safe(updatepkt, safe_upkt,
+                                 &(updatepkt_list), list)
         {
                 list_del(&(updatepkt->list));
                 free(updatepkt);
@@ -362,16 +362,16 @@ void ctl_preselect(struct cfg *cfg)
         struct accountctl *accountctl = NULL;
         struct updatepkt *updatepkt = NULL;
         char buf_wanip[32];
-        
+
         /* TODO: indirect mode */
-        
+
         if(ctl_getifaddr(cfg->wan_ifname, &curr_wanip) != 0)
         {
                 /* no wan ? */
                 return;
         }
-        
-        
+
+
         /* transform wan ip raw in ascii char */
         if(!inet_ntop(AF_INET, &curr_wanip, buf_wanip, sizeof(buf_wanip)))
         {
@@ -383,9 +383,9 @@ void ctl_preselect(struct cfg *cfg)
         if(curr_wanip.s_addr != wanip.s_addr)
         {
                 log_debug("new wan ip !");
-                
-                list_for_each_entry(accountctl, 
-                                    &(accountctl_list), list) 
+
+                list_for_each_entry(accountctl,
+                                    &(accountctl_list), list)
                 {
                         accountctl->updated = 0;
                 }
@@ -394,16 +394,16 @@ void ctl_preselect(struct cfg *cfg)
         }
 
         /*********************/
-        
+
         /* start update processus for service which need to update */
-        list_for_each_entry(accountctl, 
-                            &(accountctl_list), list) 
-        {  
+        list_for_each_entry(accountctl,
+                            &(accountctl_list), list)
+        {
                 if(accountctl->locked || accountctl->freezed)
                 {
                         continue;
                 }
-                
+
                 if(accountctl->updated
                    && timeofday.tv_sec - accountctl->last_update.tv_sec
                    >= 2419200)
@@ -420,15 +420,15 @@ void ctl_preselect(struct cfg *cfg)
                 if(!accountctl->updated && accountctl->status != SWorking)
                 {
                         log_debug("Account '%s' service '%s' need to update !",
-                                  accountctl->cfg->name, 
+                                  accountctl->cfg->name,
                                   accountctl->cfg->service);
-                        
+
                         updatepkt = ctl_create_updatepkt(&curr_wanip);
                         if(updatepkt != NULL)
                         {
                                 /* link pkt and accountctl */
                                 updatepkt->ctl = accountctl;
-                                
+
                                 /* call service update maker */
                                 if(accountctl->def->make_query(*(accountctl->cfg),
                                                                buf_wanip,
@@ -451,15 +451,15 @@ void ctl_preselect(struct cfg *cfg)
 void ctl_selectfds(fd_set *readset, fd_set *writeset, int * max_fd)
 {
         struct updatepkt *updatepkt = NULL;
-        
-        list_for_each_entry(updatepkt, 
-                            &(updatepkt_list), list) 
+
+        list_for_each_entry(updatepkt,
+                            &(updatepkt_list), list)
         {
                 log_debug("selectfds(): &updatepkt:%p - state:%d - socket:%d",
                           updatepkt, updatepkt->state, updatepkt->s);
-                if(updatepkt->s >= 0) 
+                if(updatepkt->s >= 0)
                 {
-			switch(updatepkt->state) 
+			switch(updatepkt->state)
                         {
 			case ECreated:
                                 log_debug("ECreated, try to connect");
@@ -476,7 +476,7 @@ void ctl_selectfds(fd_set *readset, fd_set *writeset, int * max_fd)
                                 {
                                         *max_fd = updatepkt->s;
                                 }
-                                
+
 				break;
 			case EWaitingForResponse:
                                 log_debug("EWaitingForResponse, readset FD_SET");
@@ -485,7 +485,7 @@ void ctl_selectfds(fd_set *readset, fd_set *writeset, int * max_fd)
                                 {
                                         *max_fd = updatepkt->s;
                                 }
-                                
+
                                 break;
                         default:
                                 break;
@@ -498,11 +498,11 @@ void ctl_processfds(fd_set *readset, fd_set *writeset)
 {
         struct updatepkt *updatepkt = NULL,
                 *safe = NULL;
-        
+
         list_for_each_entry(updatepkt,
                             &updatepkt_list, list)
         {
-                if(updatepkt->s >= 0 
+                if(updatepkt->s >= 0
                    && (FD_ISSET(updatepkt->s, readset)
                        || FD_ISSET(updatepkt->s, writeset)))
                 {
@@ -511,17 +511,17 @@ void ctl_processfds(fd_set *readset, fd_set *writeset)
                         ctl_process(updatepkt);
                 }
         }
-        
+
         /* remove finished or error pkt */
         list_for_each_entry_safe(updatepkt, safe,
                                  &updatepkt_list, list)
         {
-                if(updatepkt->state == EError 
+                if(updatepkt->state == EError
                    || updatepkt->state == EFinished)
                 {
                         log_debug("remove &updatepkt:%p - state:%d - socket:%d",
                                   updatepkt, updatepkt->state, updatepkt->s);
-                        
+
                         if(updatepkt->s >= 0)
                         {
                                 close(updatepkt->s);
@@ -547,22 +547,22 @@ int ctl_account_mapcfg(struct cfg *cfg)
         int ismapped = 0;
         int ret = 0;
 
-        list_for_each_entry(accountcfg, 
-                            &(cfg->accountcfg_list), list) 
+        list_for_each_entry(accountcfg,
+                            &(cfg->accountcfg_list), list)
         {
                 ismapped = 0;
-                
+
                 list_for_each_entry(service,
-                                    &(service_list), list) 
+                                    &(service_list), list)
                 {
                         if(strcmp(service->name, accountcfg->service) == 0)
                         {
-                                accountctl = calloc(1, 
+                                accountctl = calloc(1,
                                                     sizeof(struct accountctl));
                                 accountctl->def = service;
                                 accountctl->cfg = accountcfg;
 
-                                list_add(&(accountctl->list), 
+                                list_add(&(accountctl->list),
                                          &(accountctl_list));
 
                                 ismapped = 1;
@@ -575,8 +575,8 @@ int ctl_account_mapcfg(struct cfg *cfg)
                         log_error("No service named '%s' available !",
                                   accountcfg->service);
 
-                        list_for_each_entry_safe(accountctl, safe, 
-                                 &(accountctl_list), list) 
+                        list_for_each_entry_safe(accountctl, safe,
+                                 &(accountctl_list), list)
                         {
                                 list_del(&(accountctl->list));
                                 free(accountctl);
@@ -610,20 +610,20 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
 {
         int ret = 0;
         int ismapped = 0;
-        
+
         struct accountcfg *new_actcfg = NULL,
                 *old_actcfg = NULL;
         struct accountctl *actctl = NULL;
         struct service *service = NULL;
-        
+
         struct bridger *bridger = NULL,
                 *safe_bridger = NULL;
         struct list_head bridger_list;
 
         INIT_LIST_HEAD(&bridger_list);
-        
-        list_for_each_entry(new_actcfg, 
-                            &(newcfg->accountcfg_list), list) 
+
+        list_for_each_entry(new_actcfg,
+                            &(newcfg->accountcfg_list), list)
         {
                 old_actcfg = config_account_get(oldcfg, new_actcfg->name);
                 if(old_actcfg != NULL)
@@ -633,7 +633,7 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                         if(actctl == NULL)
                         {
                                 log_critical("Unable to get account ctl "
-                                             "for account '%s'", 
+                                             "for account '%s'",
                                              new_actcfg->name);
                                 ret = -1;
                                 break;
@@ -642,14 +642,14 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                         bridger = calloc(1, sizeof(struct bridger));
                         bridger->cfg = new_actcfg; /* link the new cfg */
                         bridger->ctl = actctl; /* link the old ctl */
-                        
-                        if(strcmp(new_actcfg->service, 
+
+                        if(strcmp(new_actcfg->service,
                                   old_actcfg->service) != 0
-                           || strcmp(new_actcfg->username, 
+                           || strcmp(new_actcfg->username,
                                      old_actcfg->username) != 0
-                           || strcmp(new_actcfg->passwd, 
+                           || strcmp(new_actcfg->passwd,
                                      old_actcfg->passwd) != 0
-                           || strcmp(new_actcfg->hostname, 
+                           || strcmp(new_actcfg->hostname,
                                      old_actcfg->hostname) != 0)
                         {
                                 /* it's an update */
@@ -659,35 +659,35 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                         {
                                 bridger->type = TMirror;
                         }
-                        
-                        list_add(&(bridger->list), 
+
+                        list_add(&(bridger->list),
                                  &bridger_list);
-                        
+
                 }
                 else
                 {
                         ismapped = 0;
-                
+
                         /* not found so it's a new account */
                         list_for_each_entry(service,
-                                            &(service_list), list) 
+                                            &(service_list), list)
                         {
-                                if(strcmp(service->name, 
+                                if(strcmp(service->name,
                                           new_actcfg->service) == 0)
                                 {
-                                        actctl = calloc(1, 
+                                        actctl = calloc(1,
                                                         sizeof(struct accountctl));
                                         actctl->def = service;
-                                        
-                                        bridger = calloc(1, 
+
+                                        bridger = calloc(1,
                                                          sizeof(struct bridger));
                                         bridger->type = TNew;
                                         bridger->cfg = new_actcfg;
                                         bridger->ctl = actctl;
-                        
-                                        list_add(&(bridger->list), 
+
+                                        list_add(&(bridger->list),
                                                  &bridger_list);
-                                        
+
                                         ismapped = 1;
                                         break;
                                 }
@@ -723,7 +723,7 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                         if(bridger->type == TNew)
                         {
                                 /* add to the accountctl list */
-                                list_add(&(bridger->ctl->list), 
+                                list_add(&(bridger->ctl->list),
                                          &(accountctl_list));
                         }
                 }
@@ -741,7 +741,7 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                                 {
                                         log_debug("remove unused ctl '%p'",
                                                   actctl);
-                                        
+
                                         list_del(&(actctl->list));
                                 }
                                 else
@@ -754,10 +754,10 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                 }
 
         }
-        
+
         /* clean up */
-        list_for_each_entry_safe(bridger, safe_bridger, 
-                                 &(bridger_list), list) 
+        list_for_each_entry_safe(bridger, safe_bridger,
+                                 &(bridger_list), list)
         {
                 if(ret != 0)
                 {
@@ -766,7 +766,7 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
                                 free(bridger->ctl);
                         }
                 }
-                
+
                 list_del(&(bridger->list));
                 free(bridger);
         }
@@ -776,10 +776,10 @@ int ctl_account_mapnewcfg(struct cfg *oldcfg,
 
 struct accountctl *ctl_account_get(const char *accountname)
 {
-        struct accountctl *accountctl = NULL; 
-        
-        list_for_each_entry(accountctl, 
-                            &(accountctl_list), list) 
+        struct accountctl *accountctl = NULL;
+
+        list_for_each_entry(accountctl,
+                            &(accountctl_list), list)
         {
                 if(strcmp(accountctl->cfg->name, accountname) == 0)
                 {

@@ -47,19 +47,19 @@ static int sig_setup(void)
 		log_error("Failed to install signal handler for SIGTERM: %m");
 		return -1;
 	}
-	
+
 	if(sigaction(SIGINT, &sa, NULL) != 0)
 	{
 		log_error("Failed to install signal handler for SIGINT: %m");
 		return -1;
 	}
-        
+
         if(sigaction(SIGHUP, &sa, NULL) != 0)
 	{
 		log_error("Failed to install signal handler for SIGHUP: %m");
 		return -1;
 	}
-        
+
         if(sigaction(SIGUSR1, &sa, NULL) != 0)
 	{
 		log_error("Failed to install signal handler for SIGUSR1: %m");
@@ -96,11 +96,11 @@ int main(int argc, char **argv)
 	fd_set readset, writeset;
 	int max_fd = -1;
 	FILE *fpid = NULL;
-        
+
         /* init */
         ctl_init();
         services_populate_list();
-        
+
 	/* config */
         memset(&cfg, 0, sizeof(struct cfg));
 	if(config_parse(&cfg, argc, argv) != 0)
@@ -155,35 +155,35 @@ int main(int argc, char **argv)
                 ret = 1;
                 goto exit_clean;
         }
-        
+
 	/* yaddns loop */
 	while(!quitting)
 	{
                 max_fd = 0;
-                
+
                 util_getuptime(&timeofday);
                 timeout.tv_sec = 15;
-                
+
                 /* reload config ? */
                 if(reloadconf)
                 {
                         log_debug("reload configuration");
-                        
+
                         memset(&cfgre, 0, sizeof(struct cfg));
-                        
+
                         if(config_parse_file(&cfgre, cfg.cfgfile) == 0)
                         {
                                 if(ctl_account_mapnewcfg(&cfg, &cfgre) == 0)
                                 {
-                                        /* if change wan ifname, reupdate all 
-                                         * accounts 
+                                        /* if change wan ifname, reupdate all
+                                         * accounts
                                          */
                                         if(cfgre.wan_cnt_type == wan_cnt_direct
                                            && strcmp(cfgre.wan_ifname,
                                                      cfg.wan_ifname) != 0)
                                         {
                                                 list_for_each_entry(accountctl,
-                                                                    &accountctl_list, 
+                                                                    &accountctl_list,
                                                                     list)
                                                 {
                                                         accountctl->updated = 0;
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
                                         /* use new configuration */
                                         cfgre.cfgfile = strdup(cfg.cfgfile);
-                                        
+
                                         config_free(&cfg);
                                         config_copy(&cfg, &cfgre);
                                 }
@@ -220,8 +220,8 @@ int main(int argc, char **argv)
                         {
                                 continue;
                         }
-                        
-                        if(timeofday.tv_sec - accountctl->freeze_time.tv_sec 
+
+                        if(timeofday.tv_sec - accountctl->freeze_time.tv_sec
                            >= accountctl->freeze_interval.tv_sec)
                         {
                                 /* unfreeze ! */
@@ -235,9 +235,9 @@ int main(int argc, char **argv)
                 /* select sockets ready to fight */
 		FD_ZERO(&readset);
                 FD_ZERO(&writeset);
-                
+
                 ctl_selectfds(&readset, &writeset, &max_fd);
-                
+
                 /* select */
                 log_debug("select !");
 
@@ -246,12 +246,12 @@ int main(int argc, char **argv)
                            &timeout, &unblocked) < 0)
                 {
                         /* error or interuption */
-                        
+
                         if(quitting)
                         {
                                 break;
                         }
-                        
+
                         if(reloadconf)
                         {
                                 continue;
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 	}
 
         log_debug("cleaning before exit");
-        
+
         /* free ctl */
         ctl_free();
 

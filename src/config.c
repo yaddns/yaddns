@@ -45,7 +45,7 @@ static char *strdup_trim (const char *s)
 
         for (; begin < end ; end--)
         {
-                if (s[end] != ' ' && s[end] != '\t' && s[end] != '"' 
+                if (s[end] != ' ' && s[end] != '\t' && s[end] != '"'
                     && s[end] != '\n')
                 {
                         break;
@@ -71,13 +71,13 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
         char *t = NULL;
         char *n = NULL, *equals = NULL, *v = NULL;
         int ret = -1;
-        
+
         while(fgets(buffer, buffer_size, file) != NULL)
 	{
                 (*linenum)++;
-                
+
                 /* make buffer a correct string without space at end */
-                t = strchr(buffer, '\n'); 
+                t = strchr(buffer, '\n');
                 if(t)
                 {
                         *t = '\0';
@@ -88,20 +88,20 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                                 t--;
                         }
                 }
-                
+
                 /* remove space at start */
                 n = buffer;
                 while(isspace(*n))
                 {
                         n++;
                 }
-                
+
                 /* skip comment or empty lines */
 		if(n[0] == '#' || n[0] == '\0')
                 {
                         continue;
                 }
-                
+
                 /* account definition ? */
                 if(memcmp(n, "account", sizeof("account") - 1) == 0)
                 {
@@ -109,8 +109,8 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                         if((equals = strchr(n, '{')) != NULL)
                         {
                                 /* remove whitespaces before { */
-                                for(t = equals - 1; 
-                                    t > n && isspace(*t); 
+                                for(t = equals - 1;
+                                    t > n && isspace(*t);
                                     t--)
                                 {
                                         *t = '\0';
@@ -118,7 +118,7 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
 
                                 /* maybe { is glued to account ? */
                                 *equals = '\0';
-                                
+
                                 *name = n;
                                 *value = NULL;
                                 ret = 0;
@@ -152,10 +152,10 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                                   n, filename, (*linenum));
 			break;
 		}
-                
+
                 /* remove whitespaces before = */
-                for(t = equals - 1; 
-                    t > n && isspace(*t); 
+                for(t = equals - 1;
+                    t > n && isspace(*t);
                     t--)
                 {
                         *t = '\0';
@@ -165,20 +165,20 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                 *equals = '\0';
 
 		v = equals + 1;
-                
+
                 /* skip leading whitespaces */
 		while(isspace(*v))
                 {
 			v++;
                 }
-                
+
                 *name = n;
                 *value = v;
                 ret = 0;
 
                 break;
         }
-        
+
         return ret;
 }
 
@@ -186,7 +186,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
 {
         int cfgfile_flag = 0;
         struct service *service = NULL;
-        
+
         int c, ind;
         char short_options[] = "vhlf:p:D";
         struct option long_options [] = {
@@ -203,8 +203,8 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         cfg->cfgfile = NULL;
         cfg->pidfile = NULL;
         cfg->daemonize = 0;
-        
-        while((c = getopt_long (argc, argv, 
+
+        while((c = getopt_long (argc, argv,
                                 short_options, long_options, &ind)) != EOF)
         {
                 switch(c)
@@ -223,7 +223,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                                "list of available services\n");
                         printf(" -v, --version\t\tDisplay the version\n");
                         return -1;
-                        
+
                 case 'v':
                         printf(PACKAGE_STRING "\n");
                         return -1;
@@ -231,25 +231,25 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 case 'l':
                         printf("List of available services:\n");
                         list_for_each_entry(service,
-                                            &service_list, list) 
+                                            &service_list, list)
                         {
                                 printf("  - %s\n", service->name);
                         }
                         return -1;
-                        
+
                 case 'D':
                         cfg->daemonize = 1;
                         break;
-                        
+
                 case 'p':
                         cfg->pidfile = strdup(optarg);
                         break;
-                        
+
                 case 'f':
                         cfg->cfgfile = strdup(optarg);
                         cfgfile_flag = 1;
                         break;
-                        
+
                 default:
                         break;
                 }
@@ -261,7 +261,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         {
                 cfg->cfgfile = strdup(CFG_DEFAULT_FILENAME);
         }
-        
+
         if(config_parse_file(cfg, cfg->cfgfile) != 0)
         {
                 if(access(cfg->cfgfile, F_OK) == 0 || cfgfile_flag)
@@ -270,7 +270,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         return -1;
                 }
         }
-        
+
         if(cfg->wan_ifname == NULL)
         {
                 log_warning("wan ifname isn't defined. Use ppp0 by default");
@@ -296,30 +296,30 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         int accountdef_scope = 0;
         struct accountcfg *accountcfg = NULL,
                 *safe_accountcfg = NULL;
-        
+
         INIT_LIST_HEAD( &(cfg->accountcfg_list) );
-        
+
         log_debug("Trying to parse '%s' config file", filename);
-        
+
         if((file = fopen(filename, "r")) == NULL)
         {
                 log_error("Error when trying to open '%s' config file: %m",
                           filename);
 		return -1;
         }
-        
-        while((ret = config_get_assignment(file, buffer, sizeof(buffer), 
+
+        while((ret = config_get_assignment(file, buffer, sizeof(buffer),
                                            filename, &linenum,
                                            &name, &value)) != -1)
 	{
                 log_debug("assignment '%s' = '%s'", name, value);
-                
+
                 if(accountdef_scope)
                 {
                         if(name == NULL)
                         {
                                 accountdef_scope = 0;
-                                
+
                                 /* check and insert */
                                 if(accountcfg->name == NULL
                                    || accountcfg->service == NULL
@@ -333,19 +333,19 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                                   accountcfg->name,
                                                   accountcfg->service,
                                                   filename, linenum);
-                                        
+
                                         CFG_FREE(accountcfg->name);
                                         CFG_FREE(accountcfg->service);
                                         CFG_FREE(accountcfg->username);
                                         CFG_FREE(accountcfg->passwd);
                                         CFG_FREE(accountcfg->name);
                                         free(accountcfg);
-                                        
+
                                         ret = -1;
                                         break;
                                 }
 
-                                list_add(&(accountcfg->list), 
+                                list_add(&(accountcfg->list),
                                          &(cfg->accountcfg_list));
                         }
                         else if(strcmp(name, "name") == 0)
@@ -373,7 +373,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                 log_error("Invalid option name '%s' for "
                                           "an account (file %s line %d)",
                                           name, filename, linenum);
-                                
+
                                 ret = -1;
                                 break;
                         }
@@ -407,9 +407,9 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                         ret = -1;
                         break;
                 }
-                
+
         }
-        
+
         if(ret == -1)
         {
                 if(feof(file))
@@ -422,7 +422,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 {
                         /* error. need to cleanup */
                         CFG_FREE(cfg->wan_ifname);
-                        
+
                         list_for_each_entry_safe(accountcfg, safe_accountcfg,
                                                  &(cfg->accountcfg_list), list)
                         {
@@ -431,34 +431,34 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                 CFG_FREE(accountcfg->username);
                                 CFG_FREE(accountcfg->passwd);
                                 CFG_FREE(accountcfg->name);
-                                
+
                                 list_del(&(accountcfg->list));
                                 free(accountcfg);
                         }
-                                        
+
                 }
         }
 
         if(accountdef_scope)
         {
                 log_error("No found closure for account name '%s' service '%s' "
-                          "(file %s line %d)", 
-                          accountcfg->name, accountcfg->service, 
+                          "(file %s line %d)",
+                          accountcfg->name, accountcfg->service,
                           filename, linenum);
                 ret = -1;
         }
 
         fclose(file);
-        
+
 	return ret;
 }
 
 struct accountcfg * config_account_get(const struct cfg *cfg, const char *name)
 {
         struct accountcfg *accountcfg = NULL;
-        
+
         list_for_each_entry(accountcfg,
-                            &(cfg->accountcfg_list), list) 
+                            &(cfg->accountcfg_list), list)
         {
                 if(strcmp(accountcfg->name, name) == 0)
                 {
@@ -473,20 +473,20 @@ int config_free(struct cfg *cfg)
 {
         struct accountcfg *accountcfg = NULL,
                 *safe = NULL;
-        
+
         CFG_FREE(cfg->wan_ifname);
         CFG_FREE(cfg->cfgfile);
         CFG_FREE(cfg->pidfile);
-        
-        list_for_each_entry_safe(accountcfg, safe, 
-                                 &(cfg->accountcfg_list), list) 
+
+        list_for_each_entry_safe(accountcfg, safe,
+                                 &(cfg->accountcfg_list), list)
         {
                 CFG_FREE(accountcfg->name);
                 CFG_FREE(accountcfg->service);
                 CFG_FREE(accountcfg->username);
                 CFG_FREE(accountcfg->passwd);
                 CFG_FREE(accountcfg->hostname);
-                
+
                 list_del(&(accountcfg->list));
                 free(accountcfg);
         }
@@ -497,16 +497,16 @@ int config_free(struct cfg *cfg)
 void config_print(struct cfg *cfg)
 {
         struct accountcfg *accountcfg = NULL;
-        
+
         printf("Configuration:\n");
         printf(" cfg file = '%s'\n", cfg->cfgfile);
         printf(" pid file = '%s'\n", cfg->pidfile);
         printf(" daemonize = '%d'\n", cfg->daemonize);
         printf(" wan ifname = '%s'\n", cfg->wan_ifname);
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
-        
+
         list_for_each_entry(accountcfg,
-                            &(cfg->accountcfg_list), list) 
+                            &(cfg->accountcfg_list), list)
         {
                 printf(" ---- account name '%s' ----\n", accountcfg->name);
                 printf("   service = '%s'\n", accountcfg->service);
@@ -517,11 +517,11 @@ void config_print(struct cfg *cfg)
 }
 
 void config_copy(struct cfg *cfgdst, const struct cfg *cfgsrc)
-{          
+{
         struct accountcfg *actcfg = NULL,
                 *safe_actcfg = NULL;
-        
-        memcpy(cfgdst, cfgsrc, 
+
+        memcpy(cfgdst, cfgsrc,
                sizeof(struct cfg) - sizeof(struct list_head));
         list_for_each_entry_safe(actcfg, safe_actcfg,
                                  &(cfgsrc->accountcfg_list), list)

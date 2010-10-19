@@ -31,17 +31,17 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 		'Y','Z','a','b','c','d','e','f',
 		'g','h','i','j','k','l','m','n',
 		'o','p','q','r','s','t','u','v',
-		'w','x','y','z','0','1','2','3',  
+		'w','x','y','z','0','1','2','3',
 		'4','5','6','7','8','9','+','/'
 	};
 	int len, i;
 	unsigned char *p = NULL;
-       
+
 	len = strlen(src);
-	
+
 	*output_size = 4 * ((len + 2) / 3) + 1;
 	*output = (char *)malloc(*output_size);
-	
+
 	p = (unsigned char *)(*output);
 	/* Transform the 3x8 bits to 4x6 bits, as required by base64. */
 	for (i = 0; i < len; i += 3)
@@ -52,7 +52,7 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 		*p++ = tbl[src[2] & 0x3f];
 		src += 3;
 	}
-	
+
 	/* Pad the result if necessary... */
 	if (i == len + 1)
 	{
@@ -62,25 +62,25 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 	{
 		*(p - 1) = *(p - 2) = '=';
 	}
-	
+
 	/* ...and zero-teminate it.  */
 	*p = '\0';
-	
+
 	return 0;
 }
 
 void util_getuptime(struct timeval *tv)
 {
 	struct timespec tp;
-	
-        if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0) 
+
+        if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
 	{
 		log_error("Error getting clock %m !");
 		tv->tv_sec = 0;
 		tv->tv_usec = 0;
 		return;
 	}
-	
+
 	tv->tv_sec = tp.tv_sec;
 	tv->tv_usec = 0;
 }
