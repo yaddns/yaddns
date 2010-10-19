@@ -81,7 +81,7 @@ static void ctl_process_recv(struct updatepkt *updatepkt)
 
         log_debug("Recv %u bytes: %.*s", n, n, updatepkt->buf);
         
-        ret = updatepkt->ctl->def->read_up_resp(updatepkt->buf, &report);
+        ret = updatepkt->ctl->def->read_resp(updatepkt->buf, &report);
         
         if(ret != 0)
         {
@@ -430,10 +430,10 @@ void ctl_preselect(struct cfg *cfg)
                                 updatepkt->ctl = accountctl;
                                 
                                 /* call service update maker */
-                                if(accountctl->def->make_up_query(*(accountctl->cfg),
-                                                                  buf_wanip,
-                                                                  updatepkt->buf,
-                                                                  sizeof(updatepkt->buf)) != 0)
+                                if(accountctl->def->make_query(*(accountctl->cfg),
+                                                               buf_wanip,
+                                                               updatepkt->buf,
+                                                               sizeof(updatepkt->buf)) != 0)
                                 {
                                         updatepkt->state = EError;
                                         continue;

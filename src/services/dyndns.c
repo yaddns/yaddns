@@ -110,8 +110,8 @@ struct service dyndns_service = {
 	.name = "dyndns",
         .ipserv = DYNDNS_HOST,
         .portserv = DYNDNS_PORT,
-	.make_up_query = dyndns_write,
-	.read_up_resp = dyndns_read,
+	.make_query = dyndns_write,
+	.read_resp = dyndns_read,
 };
 
 static int dyndns_write(const struct accountcfg cfg, 
