@@ -186,7 +186,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 {"version", no_argument, 0, 'v' },
                 {"help", no_argument, 0, 'h' },
                 {"list-service", no_argument, 0, 'l' },
-                /*{"daemon", no_argument, 0, 'D' },*/
+                {"daemonize", no_argument, 0, 'D' },
                 {"cfg", required_argument, 0, 'f' },
                 {"pid-file", required_argument, 0, 'p' },
                 {"daemonize", required_argument, 0, 'D' },
