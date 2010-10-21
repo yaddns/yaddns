@@ -1,26 +1,12 @@
-/*
- *  Yaddns - Yet Another ddns client
- *  Copyright (C) 2008 Anthony Viallard <anthony.viallard@patatrac.info>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+#include <unistd.h>
+
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "util.h"
 #include "log.h"
-
-#include <stdlib.h>
-#include <time.h>
 
 int util_base64_encode(const char *src, char **output, size_t *output_size)
 {
@@ -83,4 +69,42 @@ void util_getuptime(struct timeval *tv)
 
 	tv->tv_sec = tp.tv_sec;
 	tv->tv_usec = 0;
+}
+
+int util_getifaddr(const char *ifname, struct in_addr *addr)
+{
+        /* SIOCGIFADDR struct ifreq *  */
+	int s;
+	struct ifreq ifr;
+	int ifrlen;
+
+	if(!ifname || ifname[0]=='\0')
+        {
+		return -1;
+        }
+
+	s = socket(PF_INET, SOCK_DGRAM, 0);
+	if(s < 0)
+	{
+		log_error("socket(PF_INET, SOCK_DGRAM): %m");
+		return -1;
+	}
+
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_addr.sa_family = AF_INET; /* IPv4 IP address */
+	strncpy(ifr.ifr_name, ifname, IFNAMSIZ-1);
+	ifrlen = sizeof(ifr);
+
+	if(ioctl(s, SIOCGIFADDR, &ifr, &ifrlen) < 0)
+	{
+		log_error("ioctl(s, SIOCGIFADDR, ...): %m");
+		close(s);
+		return -1;
+	}
+
+	*addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
+
+	close(s);
+
+	return 0;
 }

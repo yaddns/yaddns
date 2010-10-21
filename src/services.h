@@ -16,30 +16,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _YADDNS_UTIL_H_
-#define _YADDNS_UTIL_H_
+#ifndef _YADDNS_SERVICES_H_
+#define _YADDNS_SERVICES_H_
 
-#include <string.h>
-#include <netinet/in.h>
-#include <sys/time.h>
+struct list_head service_list;
 
-#define UNUSED(x) ( (void)(x) )
-
-/*
- * Encode src txt in base64 and fill malloced ouput
- *
- * @return 0 if success, -1 otherwise
- */
-extern int util_base64_encode(const char *src, char **output, size_t *output_size);
-
-/*
- * Get system uptime
- */
-extern void util_getuptime(struct timeval *tv);
-
-/*
- * Get ip address of an interface
- */
-int util_getifaddr(const char *ifname, struct in_addr *addr);
+void services_populate_list(void);
 
 #endif

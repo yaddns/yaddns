@@ -1,3 +1,21 @@
+/*
+ *  Yaddns - Yet Another ddns client
+ *  Copyright (C) 2008 Anthony Viallard <anthony.viallard@patatrac.info>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef _YADDNS_SERVICE_H_
 #define _YADDNS_SERVICE_H_
 
@@ -5,6 +23,7 @@
 
 #include "list.h"
 #include "config.h"
+#include "request.h"
 
 struct upreply_report {
 	enum {
@@ -32,9 +51,8 @@ struct service {
 	int (*dtor) (void);
 	int (*make_query) (const struct accountcfg cfg,
                            const char const *newwanip,
-                           char *buffer,
-                           size_t buffer_size);
-	int (*read_resp) (char *resp,
+                           struct request_buff *buff);
+	int (*read_resp) (struct request_buff *buff,
                           struct upreply_report *report);
 	struct list_head list;
 };

@@ -1,7 +1,7 @@
+#include "services.h"
+
 #include "service.h"
 #include "list.h"
-
-struct list_head service_list;
 
 extern struct service dyndns_service;
 

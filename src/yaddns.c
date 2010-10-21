@@ -4,17 +4,24 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
+#include "yaddns.h"
+#include "services.h"
+#include "request.h"
 #include "config.h"
 #include "log.h"
-#include "ctl.h"
+#include "account.h"
 #include "util.h"
 
-volatile sig_atomic_t quitting = 0;
-volatile sig_atomic_t reloadconf = 0;
-volatile sig_atomic_t wakeup = 0;
+static volatile sig_atomic_t quitting = 0;
+static volatile sig_atomic_t reloadconf = 0;
+static volatile sig_atomic_t wakeup = 0;
 
 struct timeval timeofday = {0, 0};
+struct in_addr wanip;
 
 static void sig_handler(int signum)
 {
@@ -92,14 +99,17 @@ int main(int argc, char **argv)
         struct cfg cfg, cfgre;
         struct timespec timeout = {0, 0};
         struct timeval lasttimeofday = {0, 0};
-        struct accountctl *accountctl = NULL;
 	fd_set readset, writeset;
 	int max_fd = -1;
 	FILE *fpid = NULL;
 
+        struct in_addr curr_wanip;
+
         /* init */
-        ctl_init();
+        account_ctl_init();
+        request_ctl_init();
         services_populate_list();
+        inet_aton("0.0.0.0", &wanip);
 
 	/* config */
         memset(&cfg, 0, sizeof(struct cfg));
@@ -150,7 +160,7 @@ int main(int argc, char **argv)
         }
 
         /* create account ctls */
-        if(ctl_account_mapcfg(&cfg) != 0)
+        if(account_ctl_mapcfg(&cfg) != 0)
         {
                 ret = 1;
                 goto exit_clean;
@@ -159,8 +169,12 @@ int main(int argc, char **argv)
 	/* yaddns loop */
 	while(!quitting)
 	{
+                /* reinit variables for pselect() */
                 max_fd = 0;
+		FD_ZERO(&readset);
+                FD_ZERO(&writeset);
 
+                /* get current time */
                 util_getuptime(&timeofday);
                 timeout.tv_sec = 15;
 
@@ -173,7 +187,7 @@ int main(int argc, char **argv)
 
                         if(config_parse_file(&cfgre, cfg.cfgfile) == 0)
                         {
-                                if(ctl_account_mapnewcfg(&cfg, &cfgre) == 0)
+                                if(account_ctl_mapnewcfg(&cfg, &cfgre) == 0)
                                 {
                                         /* if change wan ifname, reupdate all
                                          * accounts
@@ -182,12 +196,7 @@ int main(int argc, char **argv)
                                            && strcmp(cfgre.wan_ifname,
                                                      cfg.wan_ifname) != 0)
                                         {
-                                                list_for_each_entry(accountctl,
-                                                                    &accountctl_list,
-                                                                    list)
-                                                {
-                                                        accountctl->updated = 0;
-                                                }
+                                                account_ctl_needupdate();
                                         }
 
                                         /* use new configuration */
@@ -212,35 +221,26 @@ int main(int argc, char **argv)
                         reloadconf = 0;
                 }
 
-                /* unfreeze services ? */
-                list_for_each_entry(accountctl,
-                                    &accountctl_list, list)
+                /* get the current system wan ip address */
+                if(util_getifaddr(cfg.wan_ifname, &curr_wanip) == 0)
                 {
-                        if(!accountctl->freezed)
+                        if(curr_wanip.s_addr != wanip.s_addr)
                         {
-                                continue;
-                        }
+                                log_debug("new wan ip !");
+                                wanip.s_addr = curr_wanip.s_addr;
 
-                        if(timeofday.tv_sec - accountctl->freeze_time.tv_sec
-                           >= accountctl->freeze_interval.tv_sec)
-                        {
-                                /* unfreeze ! */
-                                accountctl->freezed = 0;
+                                /* account need to be updated */
+                                account_ctl_needupdate();
                         }
                 }
 
-                /* wan ip has changed ? */
-                ctl_preselect(&cfg);
+                /* manage accounts */
+                account_ctl_manage();
 
-                /* select sockets ready to fight */
-		FD_ZERO(&readset);
-                FD_ZERO(&writeset);
+                /* select request candidate fds */
+                request_ctl_selectfds(&readset, &writeset, &max_fd);
 
-                ctl_selectfds(&readset, &writeset, &max_fd);
-
-                /* select */
-                log_debug("select !");
-
+                /* pselect */
                 if(pselect(max_fd + 1,
                            &readset, &writeset, NULL,
                            &timeout, &unblocked) < 0)
@@ -269,17 +269,14 @@ int main(int argc, char **argv)
                         break;
                 }
 
-                /* there are informations to read ? */
-                ctl_processfds(&readset, &writeset);
+                /* process fds with have new state */
+                request_ctl_processfds(&readset, &writeset);
 
                 /* save last timeofday */
                 memcpy(&lasttimeofday, &timeofday, sizeof(struct timeval));
 	}
 
         log_debug("cleaning before exit");
-
-        /* free ctl */
-        ctl_free();
 
 exit_clean:
         sig_unblockall();
@@ -289,6 +286,10 @@ exit_clean:
 
 	/* free allocated config */
 	config_free(&cfg);
+
+        /* free ctl */
+        request_ctl_cleanup();
+        account_ctl_cleanup();
 
 	return ret;
 }

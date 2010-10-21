@@ -7,8 +7,8 @@
 
 #include "config.h"
 #include "log.h"
-#include "ctl.h"
 #include "service.h"
+#include "services.h"
 
 #define CFG_DEFAULT_FILENAME "/etc/yaddns.conf"
 

@@ -16,10 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "service.h"
-#include "util.h"
-#include "log.h"
-
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -27,6 +23,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+
+#include "service.h"
+#include "request.h"
+#include "util.h"
+#include "log.h"
 
 /*
  * This dyndns client is inspired by updatedd dyndns service client
@@ -100,10 +101,9 @@ static struct {
 };
 
 static int dyndns_write(const struct accountcfg cfg,
-			  const char const *newwanip,
-			  char *buffer,
-			  size_t buffer_size);
-static int dyndns_read(char *buffer,
+                        const char const *newwanip,
+                        struct request_buff *buff);
+static int dyndns_read(struct request_buff *buff,
 		       struct upreply_report *report);
 
 struct service dyndns_service = {
@@ -116,8 +116,7 @@ struct service dyndns_service = {
 
 static int dyndns_write(const struct accountcfg cfg,
 			const char const *newwanip,
-			char *buffer,
-			size_t buffer_size)
+			struct request_buff *buff)
 {
 	char buf[256];
 	char *b64_loginpass = NULL;
@@ -133,7 +132,7 @@ static int dyndns_write(const struct accountcfg cfg,
 		return -1;
 	}
 
-	snprintf(buffer, buffer_size,
+	snprintf(buff->data, sizeof(buff->data),
 		 "GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
 		 "&myip=%s"
 		 "&backmx=NO&offline=NO"
@@ -152,7 +151,7 @@ static int dyndns_write(const struct accountcfg cfg,
 	return 0;
 }
 
-static int dyndns_read(char *buffer,
+static int dyndns_read(struct request_buff *buff,
 		       struct upreply_report *report)
 {
 	int ret = 0;
@@ -162,10 +161,10 @@ static int dyndns_read(char *buffer,
 
 	report->code = up_unknown_error;
 
-	if(strstr(buffer, "HTTP/1.1 200 OK") ||
-	   strstr(buffer, "HTTP/1.0 200 OK"))
+	if(strstr(buff->data, "HTTP/1.1 200 OK") ||
+	   strstr(buff->data, "HTTP/1.0 200 OK"))
 	{
-		(void)strtok(buffer, "\n");
+		(void)strtok(buff->data, "\n");
 		while(!f && (ptr = strtok(NULL, "\n")) != NULL)
 		{
 			for(n = 0; rc_map[n].code != NULL; n++)
@@ -198,7 +197,7 @@ static int dyndns_read(char *buffer,
                         report->rcmd_lock = 1;
                 }
 	}
-	else if(strstr(buffer, "401 Authorization Required"))
+	else if(strstr(buff->data, "401 Authorization Required"))
 	{
 		report->code = up_account_error;
                 report->rcmd_freeze = 1;

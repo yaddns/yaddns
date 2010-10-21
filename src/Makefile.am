@@ -4,13 +4,15 @@ AM_CFLAGS = -Wall -Wextra -Wfloat-equal -Wundef -Wshadow \
 
 bin_PROGRAMS = yaddns
 
-yaddns_SOURCES = yaddns.c \
+yaddns_SOURCES = yaddns.c yaddns.h \
 	config.c config.h \
-	ctl.c ctl.h \
+	account.c account.h \
+	request.c request.h \
 	log.c log.h \
 	util.c util.h \
-	list.h service.h \
-	services.c
+	list.h \
+	services.c services.h
 
-yaddns_SOURCES += services/dyndns.c
+yaddns_SOURCES +=  service.h \
+	services/dyndns.c
 
