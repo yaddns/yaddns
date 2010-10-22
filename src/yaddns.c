@@ -16,7 +16,7 @@
 #include "account.h"
 #include "util.h"
 
-static volatile sig_atomic_t quitting = 0;
+static volatile sig_atomic_t keep_going = 0;
 static volatile sig_atomic_t reloadconf = 0;
 static volatile sig_atomic_t wakeup = 0;
 
@@ -28,7 +28,7 @@ static void sig_handler(int signum)
 	if(signum == SIGTERM || signum == SIGINT)
 	{
 		log_notice("Receive SIGTERM or SIGINT. Exit.");
-		quitting = 1;
+		keep_going = 0;
 	}
         else if(signum == SIGHUP)
         {
@@ -167,7 +167,8 @@ int main(int argc, char **argv)
         }
 
 	/* yaddns loop */
-	while(!quitting)
+        keep_going = 1;
+	while(keep_going)
 	{
                 /* reinit variables for pselect() */
                 max_fd = 0;
@@ -222,7 +223,9 @@ int main(int argc, char **argv)
                 }
 
                 /* get the current system wan ip address */
-                if(util_getifaddr(cfg.wan_ifname, &curr_wanip) == 0)
+                if((cfg.wan_cnt_type = wan_cnt_direct
+                    && util_getifaddr(cfg.wan_ifname, &curr_wanip) == 0)
+                   || myip_getwanipaddr(&(cfg.myip_serv), &curr_wanip) == 0)
                 {
                         if(curr_wanip.s_addr != wanip.s_addr)
                         {
@@ -247,7 +250,7 @@ int main(int argc, char **argv)
                 {
                         /* error or interuption */
 
-                        if(quitting)
+                        if(!keep_going)
                         {
                                 break;
                         }
