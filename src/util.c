@@ -4,6 +4,7 @@
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <time.h>
+#include <errno.h>
 
 #include "util.h"
 #include "log.h"
@@ -107,4 +108,66 @@ int util_getifaddr(const char *ifname, struct in_addr *addr)
 	close(s);
 
 	return 0;
+}
+
+char *strdup_trim(const char *s)
+{
+        size_t begin, end, len;
+        char *r = NULL;
+
+        if(!s)
+        {
+                return NULL;
+        }
+
+        end = strlen(s) - 1;
+
+        for(begin = 0; begin < end; ++begin)
+        {
+                if(s[begin] != ' ' && s[begin] != '\t' && s[begin] != '"')
+                {
+                        break;
+                }
+        }
+
+        for (; begin < end ; --end)
+        {
+                if(s[end] != ' ' && s[end] != '\t' && s[end] != '"'
+                   && s[end] != '\n')
+                {
+                        break;
+                }
+        }
+
+        len = end - begin + 1;
+
+        r = malloc(len + 1);
+        if(r != NULL)
+        {
+                strncpy(r, s + begin, len);
+                r[len] = '\0';
+        }
+
+        return r;
+}
+
+long strtol_safe(char const *buf, long def)
+{
+        long ret;
+
+        if(*buf == '\0')
+        {
+                return def;
+        }
+
+        errno = 0;
+        ret = strtol(buf, NULL, 10);
+        if(errno != 0)
+        {
+                log_error("%s - conversion failed, buffer was %s",
+                          __func__, buf);
+                return def;
+        }
+
+        return ret;
 }

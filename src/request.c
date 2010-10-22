@@ -165,7 +165,7 @@ static void request_process(struct request *request)
 	case FSConnecting:
 	case FSSending:
                 log_debug("request_process &request:%p - state:%d - socket:%d"
-                          "match 'FSConnecting or FSSending'",
+                          " match 'FSConnecting or FSSending'",
                           request, request->state, request->s);
 
 		request_process_send(request);
@@ -332,6 +332,7 @@ void request_ctl_selectfds(fd_set *readset, fd_set *writeset, int *max_fd)
         list_for_each_entry(request,
                             &(request_list), list)
         {
+                log_debug("---------------------------");
                 log_debug("selectfds(): &request:%p - state:%d - socket:%d",
                           request, request->state, request->s);
                 if(request->s >= 0)
@@ -383,6 +384,7 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
                    && (FD_ISSET(request->s, readset)
                        || FD_ISSET(request->s, writeset)))
                 {
+                        log_debug("---------------------------");
                         log_debug("&request:%p - state:%d - socket:%d",
                                   request, request->state, request->s);
                         request_process(request);

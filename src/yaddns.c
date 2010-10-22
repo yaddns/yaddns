@@ -15,6 +15,7 @@
 #include "log.h"
 #include "account.h"
 #include "util.h"
+#include "myip.h"
 
 static volatile sig_atomic_t keep_going = 0;
 static volatile sig_atomic_t reloadconf = 0;
@@ -22,6 +23,7 @@ static volatile sig_atomic_t wakeup = 0;
 
 struct timeval timeofday = {0, 0};
 struct in_addr wanip;
+short int have_wanip = 0;
 
 static void sig_handler(int signum)
 {
@@ -111,26 +113,6 @@ int main(int argc, char **argv)
         services_populate_list();
         inet_aton("0.0.0.0", &wanip);
 
-	/* config */
-        memset(&cfg, 0, sizeof(struct cfg));
-	if(config_parse(&cfg, argc, argv) != 0)
-	{
-		return 1;
-	}
-
-	/* open log */
-	log_open(&cfg);
-
-        /* daemonize ? */
-        if(cfg.daemonize)
-        {
-                if(daemon(0, 0) < 0)
-                {
-                        log_error("Failed to daemonize !");
-                        return 1;
-                }
-        }
-
         /* sig setup */
         if(sig_setup() != 0)
         {
@@ -141,6 +123,30 @@ int main(int argc, char **argv)
         sig_blockall();
 
         sigemptyset(&unblocked);
+
+	/* config */
+        memset(&cfg, 0, sizeof(struct cfg));
+	if(config_parse(&cfg, argc, argv) != 0)
+	{
+                ret = 1;
+                goto exit_clean;
+	}
+
+        config_print(&cfg);
+
+	/* open log */
+	log_open(&cfg);
+
+        /* daemonize ? */
+        if(cfg.daemonize)
+        {
+                if(daemon(0, 0) < 0)
+                {
+                        log_error("Failed to daemonize !");
+                        ret = 1;
+                        goto exit_clean;
+                }
+        }
 
         /* create pid file ? */
         if(cfg.pidfile != NULL)
@@ -200,6 +206,11 @@ int main(int argc, char **argv)
                                                 account_ctl_needupdate();
                                         }
 
+                                        if(cfgre.wan_cnt_type == wan_cnt_indirect)
+                                        {
+                                                myip_needupdate();
+                                        }
+
                                         /* use new configuration */
                                         cfgre.cfgfile = strdup(cfg.cfgfile);
 
@@ -225,16 +236,25 @@ int main(int argc, char **argv)
                 /* get the current system wan ip address */
                 if((cfg.wan_cnt_type = wan_cnt_direct
                     && util_getifaddr(cfg.wan_ifname, &curr_wanip) == 0)
-                   || myip_getwanipaddr(&(cfg.myip_serv), &curr_wanip) == 0)
+                   || myip_getwanipaddr(&(cfg.myip), &curr_wanip) == 0)
                 {
+                        have_wanip = 1;
+
                         if(curr_wanip.s_addr != wanip.s_addr)
                         {
-                                log_debug("new wan ip !");
                                 wanip.s_addr = curr_wanip.s_addr;
+
+                                log_debug("new wan ip ! %s",
+                                          inet_ntoa(wanip));
 
                                 /* account need to be updated */
                                 account_ctl_needupdate();
                         }
+                }
+                else
+                {
+                        /* no wan or using myip service ? */
+                        have_wanip = 0;
                 }
 
                 /* manage accounts */

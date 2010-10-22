@@ -42,4 +42,14 @@ extern void util_getuptime(struct timeval *tv);
  */
 int util_getifaddr(const char *ifname, struct in_addr *addr);
 
+/*
+ * Allocate new string with trimming spaces, tabs, ", ' and \n in input string
+ */
+char *strdup_trim(const char *s);
+
+/*
+ * Return integer contened in a string
+ */
+long strtol_safe(char const *buf, long def);
+
 #endif

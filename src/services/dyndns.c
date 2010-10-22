@@ -121,6 +121,7 @@ static int dyndns_write(const struct accountcfg cfg,
 	char buf[256];
 	char *b64_loginpass = NULL;
 	size_t b64_loginpass_size;
+        int n;
 
 	/* make the update packet */
 	snprintf(buf, sizeof(buf), "%s:%s", cfg.username, cfg.passwd);
@@ -132,19 +133,20 @@ static int dyndns_write(const struct accountcfg cfg,
 		return -1;
 	}
 
-	snprintf(buff->data, sizeof(buff->data),
-		 "GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
-		 "&myip=%s"
-		 "&backmx=NO&offline=NO"
-		 " HTTP/1.1\r\n"
-		 "Host: " DYNDNS_HOST "\r\n"
-		 "Authorization: Basic %s\r\n"
-		 "User-Agent: " PACKAGE "/" VERSION "\r\n"
-		 "Connection: close\r\n"
-		 "Pragma: no-cache\r\n\r\n",
-		 cfg.hostname,
-		 newwanip,
-		 b64_loginpass);
+	n = snprintf(buff->data, sizeof(buff->data),
+                     "GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
+                     "&myip=%s"
+                     "&backmx=NO&offline=NO"
+                     " HTTP/1.1\r\n"
+                     "Host: " DYNDNS_HOST "\r\n"
+                     "Authorization: Basic %s\r\n"
+                     "User-Agent: " PACKAGE "/" VERSION "\r\n"
+                     "Connection: close\r\n"
+                     "Pragma: no-cache\r\n\r\n",
+                     cfg.hostname,
+                     newwanip,
+                     b64_loginpass);
+        buff->data_size = n;
 
 	free(b64_loginpass);
 

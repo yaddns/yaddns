@@ -24,5 +24,6 @@
 
 struct timeval timeofday;
 struct in_addr wanip;
+short int have_wanip;
 
 #endif

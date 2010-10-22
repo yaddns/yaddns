@@ -9,8 +9,16 @@
 #include "log.h"
 #include "service.h"
 #include "services.h"
+#include "util.h"
 
 #define CFG_DEFAULT_FILENAME "/etc/yaddns.conf"
+
+#define CFG_DEFAULT_WANIFNAME "ppp0"
+
+/* #define CFG_DEFAULT_MYIP_HOST "checkip.dyndns.org" */
+/* #define CFG_DEFAULT_MYIP_PORT 80 */
+/* #define CFG_DEFAULT_MYIP_PATH "/" */
+/* #define CFG_DEFAULT_MYIP_UPINT 60 */
 
 #define CFG_FREE(itname) do {                                           \
                 if(itname != NULL)                                      \
@@ -22,53 +30,17 @@
 
 #define CFG_SET_VALUE(itname, value) do {                               \
                 CFG_FREE(itname);                                       \
-                itname = strdup_trim(value);                            \
+                itname = strdup(value);                                 \
         } while(0)
 
-static char *strdup_trim (const char *s)
-{
-        size_t begin, end, len;
-        char *r = NULL;
-
-        if (!s)
-                return NULL;
-
-        end = strlen (s) - 1;
-
-        for (begin = 0 ; begin < end ; begin++)
-        {
-                if (s[begin] != ' ' && s[begin] != '\t' && s[begin] != '"')
-                {
-                        break;
-                }
-        }
-
-        for (; begin < end ; end--)
-        {
-                if (s[end] != ' ' && s[end] != '\t' && s[end] != '"'
-                    && s[end] != '\n')
-                {
-                        break;
-                }
-        }
-
-        len = end - begin;
-
-        r = malloc(len + 1);
-        if(r != NULL)
-        {
-                strncpy(r, s + begin, len);
-                r[len] = '\0';
-        }
-
-        return r;
-}
-
+/*
+ * spaces = space, \f, \n, \r, \t and \v
+ */
 static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
                                  const char *filename, int *linenum,
                                  char **name, char **value)
 {
-        char *t = NULL;
+        char *t = NULL, *end = NULL;
         char *n = NULL, *equals = NULL, *v = NULL;
         int ret = -1;
 
@@ -76,20 +48,22 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
 	{
                 (*linenum)++;
 
-                /* make buffer a correct string without space at end */
-                t = strchr(buffer, '\n');
-                if(t)
+                /* search \n */
+                end = strchr(buffer, '\n');
+                if(!end)
                 {
-                        *t = '\0';
-                        t--;
-                        while((t >= buffer) && isspace(*t))
-                        {
-                                *t = '\0';
-                                t--;
-                        }
+                        /* case of last line not terminated by \n */
+                        end = buffer + strlen(buffer) - 1;
                 }
 
-                /* remove space at start */
+                /* remove spaces at end */
+                while(end > buffer && isspace(*end))
+                {
+                        *end = '\0';
+                        --end;
+                }
+
+                /* remove spaces at start */
                 n = buffer;
                 while(isspace(*n))
                 {
@@ -166,10 +140,23 @@ static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
 
 		v = equals + 1;
 
-                /* skip leading whitespaces */
+                /* skip spaces */
 		while(isspace(*v))
                 {
 			v++;
+                }
+
+                /* remove " if present */
+                if(*v == '"')
+                {
+                        v++;
+                }
+
+                /* remove " at end if present */
+                if(*end == '"')
+                {
+                        *end = '\0';
+                        --end;
                 }
 
                 *name = n;
@@ -200,6 +187,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 {0, 0, 0, 0 }
         };
 
+        /* void cfg variables which can be set in cmd line */
         cfg->cfgfile = NULL;
         cfg->pidfile = NULL;
         cfg->daemonize = 0;
@@ -255,8 +243,6 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 }
         }
 
-        cfg->wan_cnt_type = wan_cnt_direct;
-        cfg->wan_ifname = NULL;
         if(cfg->cfgfile == NULL)
         {
                 cfg->cfgfile = strdup(CFG_DEFAULT_FILENAME);
@@ -269,12 +255,6 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         config_free(cfg);
                         return -1;
                 }
-        }
-
-        if(cfg->wan_ifname == NULL)
-        {
-                log_warning("wan ifname isn't defined. Use ppp0 by default");
-                cfg->wan_ifname = strdup("ppp0");
         }
 
         /* check if there account defined */
@@ -290,14 +270,24 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 {
 	FILE *file = NULL;
         int ret = 0;
+        long n = 0;
 	char buffer[1024];
 	int linenum = 0;
 	char *name = NULL, *value = NULL;
         int accountdef_scope = 0;
         struct accountcfg *accountcfg = NULL,
                 *safe_accountcfg = NULL;
+        int myip_assign_count = 0;
 
+
+        /* void cfg variables which can be set in cfg file */
         INIT_LIST_HEAD( &(cfg->accountcfg_list) );
+        cfg->wan_cnt_type = wan_cnt_direct;
+        cfg->wan_ifname = NULL;
+        cfg->myip.host = NULL;
+        cfg->myip.port = 0;
+        cfg->myip.path = NULL;
+        cfg->myip.upint = 0;
 
         log_debug("Trying to parse '%s' config file", filename);
 
@@ -399,6 +389,42 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                 cfg->wan_cnt_type = wan_cnt_direct;
                         }
                 }
+                else if(strcmp(name, "myip_host") == 0)
+                {
+                        CFG_SET_VALUE(cfg->myip.host, value);
+                        ++myip_assign_count;
+                }
+                else if(strcmp(name, "myip_port") == 0)
+                {
+                        n = strtol_safe(value, -1);
+                        if(n == -1 || n <=0 || n > 65535)
+                        {
+                                log_error("Invalid myip port %s", value);
+                                ret = -1;
+                                break;
+                        }
+
+                        cfg->myip.port = n;
+                        ++myip_assign_count;
+                }
+                else if(strcmp(name, "myip_path") == 0)
+                {
+                        CFG_SET_VALUE(cfg->myip.path, value);
+                        ++myip_assign_count;
+                }
+                else if(strcmp(name, "myip_upint") == 0)
+                {
+                        n = strtol_safe(value, -1);
+                        if(n == -1 || n <=0)
+                        {
+                                log_error("Invalid myip upint %s", value);
+                                ret = -1;
+                                break;
+                        }
+
+                        cfg->myip.upint = n;
+                        ++myip_assign_count;
+                }
                 else
                 {
                         log_error("Invalid option name '%s' (file %s "
@@ -410,32 +436,28 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 
         }
 
-        if(ret == -1)
+        if(ret == -1 && feof(file))
         {
-                if(feof(file))
+                log_debug("End of configuration file reached");
+                ret = 0;
+        }
+
+        if(cfg->wan_cnt_type == wan_cnt_direct
+           && cfg->wan_ifname == NULL)
+        {
+                log_warning("wan ifname isn't defined. Use ppp0 by default");
+                cfg->wan_ifname = strdup(CFG_DEFAULT_WANIFNAME);
+        }
+
+        if(cfg->wan_cnt_type == wan_cnt_indirect)
+        {
+                if(cfg->myip.host == NULL
+                   || cfg->myip.port == 0
+                   || cfg->myip.path == NULL
+                   || cfg->myip.upint == 0)
                 {
-                        /* end of file */
-                        log_debug("End of configuration file");
-                        ret = 0;
-                }
-                else
-                {
-                        /* error. need to cleanup */
-                        CFG_FREE(cfg->wan_ifname);
-
-                        list_for_each_entry_safe(accountcfg, safe_accountcfg,
-                                                 &(cfg->accountcfg_list), list)
-                        {
-                                CFG_FREE(accountcfg->name);
-                                CFG_FREE(accountcfg->service);
-                                CFG_FREE(accountcfg->username);
-                                CFG_FREE(accountcfg->passwd);
-                                CFG_FREE(accountcfg->name);
-
-                                list_del(&(accountcfg->list));
-                                free(accountcfg);
-                        }
-
+                        log_error("Miss myip definition(s). Check config file");
+                        ret = -1;
                 }
         }
 
@@ -446,6 +468,28 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                           accountcfg->name, accountcfg->service,
                           filename, linenum);
                 ret = -1;
+        }
+
+        if(ret == -1)
+        {
+                /* error. need to cleanup */
+                CFG_FREE(cfg->wan_ifname);
+                CFG_FREE(cfg->myip.host);
+                CFG_FREE(cfg->myip.path);
+
+                list_for_each_entry_safe(accountcfg, safe_accountcfg,
+                                         &(cfg->accountcfg_list), list)
+                {
+                        CFG_FREE(accountcfg->name);
+                        CFG_FREE(accountcfg->service);
+                        CFG_FREE(accountcfg->username);
+                        CFG_FREE(accountcfg->passwd);
+                        CFG_FREE(accountcfg->name);
+
+                        list_del(&(accountcfg->list));
+                        free(accountcfg);
+                }
+
         }
 
         fclose(file);
@@ -475,6 +519,8 @@ int config_free(struct cfg *cfg)
                 *safe = NULL;
 
         CFG_FREE(cfg->wan_ifname);
+        CFG_FREE(cfg->myip.host);
+        CFG_FREE(cfg->myip.path);
         CFG_FREE(cfg->cfgfile);
         CFG_FREE(cfg->pidfile);
 

@@ -8,9 +8,17 @@ enum wan_cnt_type {
         wan_cnt_indirect,
 };
 
+struct cfg_myip {
+        char *host;
+        unsigned short int port;
+        char *path;
+        int upint;
+};
+
 struct cfg {
         int wan_cnt_type;
         char *wan_ifname;
+        struct cfg_myip myip;
         char *cfgfile;
         char *pidfile;
         int daemonize;

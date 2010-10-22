@@ -72,7 +72,7 @@ static void account_reqhook_error(struct account *account,
                                   int errcode)
 {
         account->status = SError;
-        (void)errcode;
+        log_error("account %s update failed (errcode=%d)", errcode);
 }
 
 void account_reqhook(struct request *request, void *data)
@@ -167,10 +167,12 @@ void account_ctl_manage(void)
                         account->updated = 0;
                 }
 
-                if(!account->updated
+                if(have_wanip
+                   && !account->updated
                    && account->status != SWorking)
                 {
-                        log_debug("Account '%s' service '%s' need to update !",
+                        log_debug("Account '%s' service '%s'"
+                                  " need to be updated !",
                                   account->cfg->name,
                                   account->cfg->service);
 

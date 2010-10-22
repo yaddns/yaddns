@@ -23,7 +23,7 @@
 
 #include "list.h"
 
-#define REQUEST_DATA_MAX_SIZE                   256
+#define REQUEST_DATA_MAX_SIZE       512
 
 /* #define FS_HOOKMASK_ERROR              0x0001 << 0 */
 /* #define FS_HOOKMASK_CREATED            0x0001 << 1 */

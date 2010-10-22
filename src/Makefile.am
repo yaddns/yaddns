@@ -1,4 +1,4 @@
-AM_CFLAGS = -Wall -Wextra -Wfloat-equal -Wundef -Wshadow \
+AM_CFLAGS = -Werror -Wall -Wextra -Wfloat-equal -Wundef -Wshadow \
 	-Wpointer-arith -Wcast-align -Wstrict-overflow=5 \
 	-Wwrite-strings -Waggregate-return -Wformat=2
 
@@ -10,6 +10,7 @@ yaddns_SOURCES = yaddns.c yaddns.h \
 	request.c request.h \
 	log.c log.h \
 	util.c util.h \
+	myip.c myip.h \
 	list.h \
 	services.c services.h
 
