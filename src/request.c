@@ -94,7 +94,7 @@ static void request_connect(struct request *request)
         int ret;
 
         snprintf(serv, sizeof(serv),
-                 "%d", request->host.port);
+                 "%u", request->host.port);
 
         memset(&hints, '\0', sizeof(hints));
         hints.ai_socktype = SOCK_STREAM;
@@ -106,7 +106,7 @@ static void request_connect(struct request *request)
                         &res);
         if(e != 0)
         {
-                log_error("getaddrinfo(%s, %s) failed: %s\n",
+                log_error("getaddrinfo(%s, %u) failed: %s\n",
                           request->host.addr,
                           request->host.port,
                           gai_strerror(e));
@@ -114,7 +114,7 @@ static void request_connect(struct request *request)
                 return;
         }
 
-        log_debug("connecting to %s:%d",
+        log_debug("connecting to %s:%u",
                   request->host.addr,
                   request->host.port);
 
@@ -125,7 +125,7 @@ static void request_connect(struct request *request)
         {
                 log_debug("try to connect to %s:%u ...",
                           inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
-                          ((struct sockaddr_in*)rp->ai_addr)->sin_port);
+                          ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port));
 
                 ret = connect(request->s,
                               rp->ai_addr, rp->ai_addrlen);
