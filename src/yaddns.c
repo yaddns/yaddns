@@ -132,7 +132,9 @@ int main(int argc, char **argv)
                 goto exit_clean;
 	}
 
+#if defined(DEBUG)
         config_print(&cfg);
+#endif
 
 	/* open log */
 	log_open(&cfg);
