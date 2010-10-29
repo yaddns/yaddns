@@ -27,10 +27,10 @@
 
 struct account {
 	enum {
-                SError = -1,
+                ASError = -1,
                 ASHatched = 0,
-                SOk = 1,
-                SWorking,
+                ASOk = 1,
+                ASWorking,
         } status;
         struct service *def;
 	struct accountcfg *cfg;

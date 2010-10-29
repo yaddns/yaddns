@@ -38,7 +38,7 @@ static void account_reqhook_readresponse(struct account *account,
                 log_error("Service %s read failed (Unknown error)",
                           account->def->name);
                 account->locked = 1;
-                account->status = SError;
+                account->status = ASError;
                 return;
         }
                 
@@ -47,7 +47,7 @@ static void account_reqhook_readresponse(struct account *account,
                 log_info("update success for account '%s'",
                          account->cfg->name);
 
-                account->status = SOk;
+                account->status = ASOk;
                 account->updated = 1;
                 account->last_update.tv_sec = timeofday.tv_sec;
         }
@@ -56,7 +56,7 @@ static void account_reqhook_readresponse(struct account *account,
                 log_notice("update failed for account '%s' (rc=%d)",
                            account->cfg->name, report.code);
 
-                account->status = SError;
+                account->status = ASError;
                 account->locked = report.rcmd_lock;
                 if(report.rcmd_freeze)
                 {
@@ -71,7 +71,7 @@ static void account_reqhook_readresponse(struct account *account,
 static void account_reqhook_error(struct account *account,
                                   int errcode)
 {
-        account->status = SError;
+        account->status = ASError;
         log_error("account %s update failed (errcode=%d)", errcode);
 }
 
@@ -169,7 +169,7 @@ void account_ctl_manage(void)
 
                 if(have_wanip
                    && !account->updated
-                   && account->status != SWorking)
+                   && account->status != ASWorking)
                 {
                         log_debug("Account '%s' service '%s'"
                                   " need to be updated !",
@@ -191,7 +191,7 @@ void account_ctl_manage(void)
                                                     buf_wanip,
                                                     &req_buff) != 0)
                         {
-                                account->status = SError;
+                                account->status = ASError;
                                 continue;
                         }
 
@@ -203,12 +203,12 @@ void account_ctl_manage(void)
                         if(request_send(&req_host, &req_ctl,
                                         &req_buff, &req_opt) != 0)
                         {
-                                account->status = SError;
+                                account->status = ASError;
                                 continue;
                         }
 
                         /* all is ok */
-                        account->status = SWorking;
+                        account->status = ASWorking;
                 }
         }
 }
