@@ -164,14 +164,14 @@ static void request_process(struct request *request)
         {
 	case FSConnecting:
 	case FSSending:
-                log_debug("request_process &request:%p - state:%d - socket:%d"
+                log_debug("&request:%p - state:%d - socket:%d"
                           " match 'FSConnecting or FSSending'",
                           request, request->state, request->s);
 
 		request_process_send(request);
                 if(request->state != FSFinished)
                 {
-                        log_debug("ctl_process &request:%p - state:%d - "
+                        log_debug("&request:%p - state:%d - "
                                   "socket:%d (request->state != FSFinished)",
                                   request, request->state, request->s);
                         break;

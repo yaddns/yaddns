@@ -28,6 +28,7 @@
 struct account {
 	enum {
                 SError = -1,
+                ASHatched = 0,
                 SOk = 1,
                 SWorking,
         } status;

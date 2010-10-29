@@ -94,6 +94,42 @@ static void sig_unblockall(void)
 	sigprocmask(SIG_UNBLOCK, &set, NULL);
 }
 
+static void wanip_manage(const struct cfg *cfg)
+{
+        int ret;
+        struct in_addr fresh_wanip;
+
+        /* get the current system wan ip address */
+        if(cfg->wan_cnt_type == wan_cnt_direct)
+        {
+                ret = util_getifaddr(cfg->wan_ifname, &fresh_wanip);
+        }
+        else
+        {
+                ret = myip_getwanipaddr(&(cfg->myip), &fresh_wanip);
+        }
+
+        if(ret != 0)
+        {
+                have_wanip = 0;
+        }
+        else
+        {
+                have_wanip = 1;
+
+                if(fresh_wanip.s_addr != wanip.s_addr)
+                {
+                        wanip.s_addr = fresh_wanip.s_addr;
+
+                        log_debug("new wan ip ! %s",
+                                  inet_ntoa(wanip));
+
+                        /* account need to be updated */
+                        account_ctl_needupdate();
+                }
+        }
+}
+
 int main(int argc, char **argv)
 {
 	int ret = 0;
@@ -104,8 +140,6 @@ int main(int argc, char **argv)
 	fd_set readset, writeset;
 	int max_fd = -1;
 	FILE *fpid = NULL;
-
-        struct in_addr curr_wanip;
 
         /* init */
         account_ctl_init();
@@ -235,29 +269,8 @@ int main(int argc, char **argv)
                         reloadconf = 0;
                 }
 
-                /* get the current system wan ip address */
-                if((cfg.wan_cnt_type = wan_cnt_direct
-                    && util_getifaddr(cfg.wan_ifname, &curr_wanip) == 0)
-                   || myip_getwanipaddr(&(cfg.myip), &curr_wanip) == 0)
-                {
-                        have_wanip = 1;
-
-                        if(curr_wanip.s_addr != wanip.s_addr)
-                        {
-                                wanip.s_addr = curr_wanip.s_addr;
-
-                                log_debug("new wan ip ! %s",
-                                          inet_ntoa(wanip));
-
-                                /* account need to be updated */
-                                account_ctl_needupdate();
-                        }
-                }
-                else
-                {
-                        /* no wan or using myip service ? */
-                        have_wanip = 0;
-                }
+                /* manage wan ip address */
+                wanip_manage(&cfg);
 
                 /* manage accounts */
                 account_ctl_manage();

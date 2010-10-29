@@ -11,10 +11,25 @@
 #include "yaddns.h"
 #include "log.h"
 
-struct in_addr myip_wanaddr;
-struct timeval myip_timelastupdate = {0, 0};
-int updated = 0;
-int requesting = 0;
+/* sleep MYIP_SLEEPTIME_ON_ERROR when got an error */
+#define MYIP_SLEEPTIME_ON_ERROR 60
+
+static struct myip_ctl {
+        enum {
+                MISError = -1,
+                MISNeedUpdate = 0,
+                MISHaveIp = 1,
+                MISWorking,
+        } status;
+        struct in_addr wanaddr;
+        struct timeval timelastrequest;
+        struct timeval timelastok;
+} myip_ctl = {
+        .status = MISNeedUpdate,
+        .wanaddr = {0},
+        .timelastrequest = {0, 0},
+        .timelastok = {0, 0},
+};
 
 static void myip_reqhook_recv(struct request_buff *buff)
 {
@@ -37,6 +52,7 @@ static void myip_reqhook_recv(struct request_buff *buff)
 	{
                 log_error("HTTP code different to 200 in myip response");
                 log_debug("PACKET: %s", data);
+                myip_ctl.status = MISError;
                 return;
         }
 
@@ -67,6 +83,7 @@ static void myip_reqhook_recv(struct request_buff *buff)
         {
                 log_error("No found wan ip address in myip response");
                 log_debug("PACKET: %s", data);
+                myip_ctl.status = MISError;
                 return;
         }
 
@@ -75,14 +92,14 @@ static void myip_reqhook_recv(struct request_buff *buff)
         if(inet_aton(ip, &inp) == 0)
         {
                 log_error("inet_aton(%s) failed: %m", ip);
+                myip_ctl.status = MISError;
                 return;
         }
 
-        /* keep new wan ip address and update status variables */
-        myip_wanaddr.s_addr = inp.s_addr;
-        updated = 1;
-        requesting = 0;
-        memcpy(&myip_timelastupdate, &timeofday, sizeof(struct timeval));
+        /* update myip_ctl structure */
+        myip_ctl.status = MISHaveIp;
+        myip_ctl.wanaddr.s_addr = inp.s_addr;
+        memcpy(&myip_ctl.timelastok, &timeofday, sizeof(struct timeval));
 }
 
 static void myip_reqhook_error(struct request *request)
@@ -90,6 +107,9 @@ static void myip_reqhook_error(struct request *request)
         log_error("myip failed to get wan ip address from %s:%u "
                   "(errcode=%d)", request->host.addr, request->host.port,
                   request->errcode);
+
+        /* update myip_ctl structure */
+        myip_ctl.status = MISError;
 }
 
 static void myip_reqhook(struct request *request, void *data)
@@ -106,7 +126,8 @@ static void myip_reqhook(struct request *request, void *data)
         }
 }
 
-int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
+static int myip_sendrequest(const char *host,
+                            unsigned short int port, const char *path)
 {
         struct request_host req_host;
         struct request_ctl req_ctl = {
@@ -119,32 +140,10 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
         };
         int n;
 
-        *wanaddr = myip_wanaddr;
-
-        if(updated)
-        {
-                if(timeofday.tv_sec - myip_timelastupdate.tv_sec
-                   >= cfg_myip->upint)
-                {
-                        /* need update */
-                        updated = 0;
-                }
-                else
-                {
-                        /* return 0 for ok, read wanaddr */
-                        return 0;
-                }
-        }
-
-        if(requesting)
-        {
-                return 1; /* waiting for wanaddr */
-        }
-
         /* req_host structure */
         snprintf(req_host.addr, sizeof(req_host.addr),
-                 "%s", cfg_myip->host);
-        req_host.port = cfg_myip->port;
+                 "%s", host);
+        req_host.port = port;
 
         /* req_buff structure, tell to service to fill it */
         memset(&req_buff, 0, sizeof(req_buff));
@@ -152,7 +151,7 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
         n = snprintf(req_buff.data, sizeof(req_buff.data),
                      "GET %s HTTP/1.1\r\n"
                      "Host: %s\r\n\r\n",
-                     cfg_myip->path, cfg_myip->host);
+                     path, host);
         req_buff.data_size = n;
 
         /* send request */
@@ -160,16 +159,59 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
                         &req_buff, &req_opt) != 0)
         {
                 log_error("request_send failed on %s:%u",
-                          cfg_myip->host, cfg_myip->port);
+                          host, port);
                 return -1;
         }
 
-        requesting = 1;
+        return 0;
+}
 
-        return 1; /* waiting for wanaddr */
+/*
+ * An first call, we don't have wan ip address yet. We need to wait.
+ */
+int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
+{
+        int ret = -1;
+
+        if(myip_ctl.timelastok.tv_sec != 0)
+        {
+                /* return the last wan ip address got */
+                *wanaddr = myip_ctl.wanaddr;
+                ret = 0;
+        }
+
+        if((myip_ctl.status == MISHaveIp
+            && (timeofday.tv_sec - myip_ctl.timelastok.tv_sec
+                >= cfg_myip->upint))
+           || (myip_ctl.status == MISError
+               && (timeofday.tv_sec - myip_ctl.timelastrequest.tv_sec
+                   >= MYIP_SLEEPTIME_ON_ERROR)))
+        {
+                /* timeout, need update */
+                myip_ctl.status = MISNeedUpdate;
+        }
+
+        if(myip_ctl.status == MISNeedUpdate)
+        {
+                /* send a request */
+                if(myip_sendrequest(cfg_myip->host,
+                                    cfg_myip->port,
+                                    cfg_myip->path) == 0)
+                {
+                        myip_ctl.status = MISWorking;
+                        memcpy(&myip_ctl.timelastrequest,
+                               &timeofday, sizeof(struct timeval));
+                }
+                else
+                {
+                        myip_ctl.status = MISError;
+                }
+        }
+
+        return ret;
 }
 
 void myip_needupdate(void)
 {
-        updated = 0;
+        myip_ctl.status = MISNeedUpdate;
 }
