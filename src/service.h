@@ -27,20 +27,20 @@
 
 struct upreply_report {
 	enum {
-                up_success,
-                up_unknown_error,
-                up_syntax_error,
-                up_account_error,
-                up_account_loginpass_error,
-                up_account_hostname_error,
-                up_account_abuse_error,
-                up_server_error,
-        } code;
-        char custom_rc[16]; /* small return code receive by server */
-        char custom_rc_text[64]; /* explanation of return code in english */
+		up_success,
+		up_unknown_error,
+		up_syntax_error,
+		up_account_error,
+		up_account_loginpass_error,
+		up_account_hostname_error,
+		up_account_abuse_error,
+		up_server_error
+	} code;
+	char custom_rc[16]; /* small return code receive by server */
+	char custom_rc_text[64]; /* explanation of return code in english */
 	int rcmd_lock; /* lock or not ? */
-        int rcmd_freeze; /* freeze or not ? */
-        int rcmd_freezetime; /* freezetime recommendation in seconds */
+	int rcmd_freeze; /* freeze or not ? */
+	int rcmd_freezetime; /* freezetime recommendation in seconds */
 };
 
 struct service {
@@ -50,10 +50,10 @@ struct service {
 	int (*ctor) (void);
 	int (*dtor) (void);
 	int (*make_query) (const struct accountcfg cfg,
-                           const char const *newwanip,
-                           struct request_buff *buff);
+						const char const *newwanip,
+						struct request_buff *buff);
 	int (*read_resp) (struct request_buff *buff,
-                          struct upreply_report *report);
+						struct upreply_report *report);
 	struct list_head list;
 };
 

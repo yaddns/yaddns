@@ -31,102 +31,106 @@
 
 /*
  * This dyndns client is inspired by updatedd dyndns service client
- *  http://freshmeat.net/projects/updatedd/
+ * http://freshmeat.net/projects/updatedd/
+ * 
+ * http://www.dyndns.com/developers/specs/
  */
 
-#define DYNDNS_HOST "members.dyndns.org"
-#define DYNDNS_PORT 80
+#define DDNS_NAME "dyndns"
+#define DDNS_HOST "members.dyndns.org"
+#define DDNS_PORT 80
+
+static int ddns_write(const struct accountcfg cfg,
+						const char const *newwanip,
+						struct request_buff *buff);
+
+static int ddns_read(struct request_buff *buff,
+						struct upreply_report *report);
+
+struct service dyndns_service = {
+	.name = DDNS_NAME,
+	.ipserv = DDNS_HOST,
+	.portserv = DDNS_PORT,
+	.make_query = ddns_write,
+	.read_resp = ddns_read
+};
 
 static struct {
 	const char *code;
 	const char *text;
 	int unified_rc;
-        int lock;
-        int freeze;
-        int freezetime;
+	int lock;
+	int freeze;
+	int freezetime;
 } rc_map[] = {
 	{ "badauth",
-          "Bad authorization (username or password).",
-          up_account_loginpass_error,
-          1, 0, 0 },
+		"Bad authorization (username or password).",
+		up_account_loginpass_error,
+		1, 0, 0 },
 	{ "badsys",
-          "The system parameter given was not valid.",
-          up_syntax_error,
-          1, 0, 0 },
+		"The system parameter given was not valid.",
+		up_syntax_error,
+		1, 0, 0 },
 	{ "badagent",
-          "The useragent your client sent has been  blocked at the access level.",
-          up_syntax_error,
-          1, 0, 0 },
+		"The useragent your client sent has been  blocked at the access level.",
+		up_syntax_error,
+		1, 0, 0 },
 	{ "good",
-          "Update good and successful, IP updated.",
-          up_success,
-          0, 0, 0 },
+		"Update good and successful, IP updated.",
+		up_success,
+		0, 0, 0 },
 	{ "nochg",
-          "No changes. IP updated.",
-          up_success,
-          0, 0, 0 },
+		"No changes. IP updated.",
+		up_success,
+		0, 0, 0 },
 	{ "nohost",
-          "The hostname specified does not exist.",
-          up_account_hostname_error,
-          1, 0, 0 },
+		"The hostname specified does not exist.",
+		up_account_hostname_error,
+		1, 0, 0 },
 	{ "!donator",
-          "The offline setting was set, when the user is not a donator.",
-          up_account_error,
-          1, 0, 0 },
+		"The offline setting was set, when the user is not a donator.",
+		up_account_error,
+		1, 0, 0 },
 	{ "!yours",
-          "The hostname specified exists, but not under the username currently being used.",
-          up_account_hostname_error,
-          1, 0, 0 },
+		"The hostname specified exists, but not under the username currently being used.",
+		up_account_hostname_error,
+		1, 0, 0 },
 	{ "abuse",
-          "The hostname specified is blocked for abuse",
+		"The hostname specified is blocked for abuse",
 	  up_account_abuse_error,
-          1, 0, 0 },
+		1, 0, 0 },
 	{ "notfqdn",
-          "No hosts are given.",
-          up_account_hostname_error,
-          1, 0, 0 },
+		"No hosts are given.",
+		up_account_hostname_error,
+		1, 0, 0 },
 	{ "numhost",
-          "Too many or too few hosts found.",
-          up_account_hostname_error,
-          1, 0, 0 },
+		"Too many or too few hosts found.",
+		up_account_hostname_error,
+		1, 0, 0 },
 	{ "dnserr",
-          "DNS error encountered.",
-          up_server_error,
-          0, 1, 3600 },
+		"DNS error encountered.",
+		up_server_error,
+		0, 1, 3600 },
 	{ "911",
-          "911 error encountered.",
-          up_server_error,
-          0, 1, 3600 },
+		"911 error encountered.",
+		up_server_error,
+		0, 1, 3600 },
 	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
-static int dyndns_write(const struct accountcfg cfg,
-                        const char const *newwanip,
-                        struct request_buff *buff);
-static int dyndns_read(struct request_buff *buff,
-		       struct upreply_report *report);
-
-struct service dyndns_service = {
-	.name = "dyndns",
-        .ipserv = DYNDNS_HOST,
-        .portserv = DYNDNS_PORT,
-	.make_query = dyndns_write,
-	.read_resp = dyndns_read,
-};
-
-static int dyndns_write(const struct accountcfg cfg,
-			const char const *newwanip,
-			struct request_buff *buff)
+static int ddns_write(const struct accountcfg cfg,
+						const char const *newwanip,
+						struct request_buff *buff)
 {
 	char buf[256];
 	char *b64_loginpass = NULL;
 	size_t b64_loginpass_size;
-        int n;
+	int n;
 
 	/* make the update packet */
 	snprintf(buf, sizeof(buf), "%s:%s", cfg.username, cfg.passwd);
 
-	if(util_base64_encode(buf, &b64_loginpass, &b64_loginpass_size) != 0)
+	if (util_base64_encode(buf, &b64_loginpass, &b64_loginpass_size) != 0)
 	{
 		/* publish_error_status ?? */
 		log_error("Unable to encode in base64");
@@ -134,27 +138,28 @@ static int dyndns_write(const struct accountcfg cfg,
 	}
 
 	n = snprintf(buff->data, sizeof(buff->data),
-                     "GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
-                     "&myip=%s"
-                     "&backmx=NO&offline=NO"
-                     " HTTP/1.1\r\n"
-                     "Host: " DYNDNS_HOST "\r\n"
-                     "Authorization: Basic %s\r\n"
-                     "User-Agent: " PACKAGE "/" VERSION "\r\n"
-                     "Connection: close\r\n"
-                     "Pragma: no-cache\r\n\r\n",
-                     cfg.hostname,
-                     newwanip,
-                     b64_loginpass);
-        buff->data_size = n;
+					"GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
+					"&myip=%s"
+					"&backmx=NO&offline=NO"
+					" HTTP/1.1\r\n"
+					"Host: " DDNS_HOST "\r\n"
+					"Authorization: Basic %s\r\n"
+					"User-Agent: " PACKAGE "/" VERSION "\r\n"
+					"Connection: close\r\n"
+					"Pragma: no-cache\r\n\r\n",
+					cfg.hostname,
+					newwanip,
+					b64_loginpass);
+
+	buff->data_size = n;
 
 	free(b64_loginpass);
 
 	return 0;
 }
 
-static int dyndns_read(struct request_buff *buff,
-		       struct upreply_report *report)
+static int ddns_read(struct request_buff *buff,
+						struct upreply_report *report)
 {
 	int ret = 0;
 	char *ptr = NULL;
@@ -164,28 +169,30 @@ static int dyndns_read(struct request_buff *buff,
 	report->code = up_unknown_error;
 
 	if(strstr(buff->data, "HTTP/1.1 200 OK") ||
-	   strstr(buff->data, "HTTP/1.0 200 OK"))
+		strstr(buff->data, "HTTP/1.0 200 OK"))
 	{
-		(void)strtok(buff->data, "\n");
-		while(!f && (ptr = strtok(NULL, "\n")) != NULL)
+		(void) strtok(buff->data, "\n");
+		while (!f && (ptr = strtok(NULL, "\n")) != NULL)
 		{
-			for(n = 0; rc_map[n].code != NULL; n++)
+			for (n = 0; rc_map[n].code != NULL; n++)
 			{
-				if(strstr(ptr, rc_map[n].code))
+				if (strstr(ptr, rc_map[n].code))
 				{
 					report->code = rc_map[n].unified_rc;
-                                        snprintf(report->custom_rc,
-                                                 sizeof(report->custom_rc),
-                                                 "%s",
-                                                 rc_map[n].code);
-                                        snprintf(report->custom_rc_text,
-                                                 sizeof(report->custom_rc_text),
-                                                 "%s",
-                                                 rc_map[n].text);
-                                        report->rcmd_lock = rc_map[n].lock;
-                                        report->rcmd_freeze = rc_map[n].freeze;
-                                        report->rcmd_freezetime
-                                                = rc_map[n].freezetime;
+
+					snprintf(report->custom_rc,
+								sizeof(report->custom_rc),
+								"%s",
+								rc_map[n].code);
+
+					snprintf(report->custom_rc_text,
+								sizeof(report->custom_rc_text),
+								"%s",
+								rc_map[n].text);
+
+					report->rcmd_lock = rc_map[n].lock;
+					report->rcmd_freeze = rc_map[n].freeze;
+					report->rcmd_freezetime = rc_map[n].freezetime;
 
 					f = 1;
 					break;
@@ -193,23 +200,23 @@ static int dyndns_read(struct request_buff *buff,
 			}
 		}
 
-                if(!f)
-                {
-                        log_notice("Unknown return message received.");
-                        report->rcmd_lock = 1;
-                }
+		if (!f)
+		{
+			log_notice("Unknown return message received.");
+			report->rcmd_lock = 1;
+		}
 	}
-	else if(strstr(buff->data, "401 Authorization Required"))
+	else if (strstr(buff->data, "401 Authorization Required"))
 	{
 		report->code = up_account_error;
-                report->rcmd_freeze = 1;
-                report->rcmd_freezetime = 3600;
+		report->rcmd_freeze = 1;
+		report->rcmd_freezetime = 3600;
 	}
 	else
 	{
 		report->code = up_server_error;
-                report->rcmd_freeze = 1;
-                report->rcmd_freezetime = 3600;
+		report->rcmd_freeze = 1;
+		report->rcmd_freezetime = 3600;
 	}
 
 	return ret;
