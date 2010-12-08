@@ -15,6 +15,7 @@ yaddns_SOURCES = yaddns.c yaddns.h \
 	services.c services.h
 
 yaddns_SOURCES +=  service.h \
+	services/changeip.c \
 	services/dyndns.c \
 	services/no-ip.c \
 	services/ovh.c
