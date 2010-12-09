@@ -1,6 +1,8 @@
 yaddns 1.0:
 	* indirect wan ip address retrieve with "myip" http service
 	* fix segfault on log_error when dns lookup failed
+	* add support of no-ip, ovh, changeip and dyndns.it services
+	* fix segfault when getting list of service available with yaddns -l
 
 yaddns 0.1.2:
 	* fix signals handling
