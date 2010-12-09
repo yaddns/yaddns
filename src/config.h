@@ -38,6 +38,8 @@ extern int config_parse(struct cfg *cfg, int argc, char **argv);
 
 extern int config_parse_file(struct cfg *cfg, const char *filename);
 
+extern void config_init(struct cfg *cfg);
+
 extern int config_free(struct cfg *cfg);
 
 extern struct accountcfg * config_account_get(const struct cfg *cfg, const char *name);

@@ -146,6 +146,7 @@ int main(int argc, char **argv)
         request_ctl_init();
         services_populate_list();
         inet_aton("0.0.0.0", &wanip);
+        config_init(&cfg);
 
         /* sig setup */
         if(sig_setup() != 0)
@@ -159,7 +160,6 @@ int main(int argc, char **argv)
         sigemptyset(&unblocked);
 
 	/* config */
-        memset(&cfg, 0, sizeof(struct cfg));
 	if(config_parse(&cfg, argc, argv) != 0)
 	{
                 ret = 1;
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
                 {
                         log_debug("reload configuration");
 
-                        memset(&cfgre, 0, sizeof(struct cfg));
+                        config_init(&cfgre);
 
                         if(config_parse_file(&cfgre, cfg.cfgfile) == 0)
                         {

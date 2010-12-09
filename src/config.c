@@ -281,7 +281,6 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 
 
         /* void cfg variables which can be set in cfg file */
-        INIT_LIST_HEAD( &(cfg->accountcfg_list) );
         cfg->wan_cnt_type = wan_cnt_direct;
         cfg->wan_ifname = NULL;
         cfg->myip.host = NULL;
@@ -511,6 +510,12 @@ struct accountcfg * config_account_get(const struct cfg *cfg, const char *name)
         }
 
         return NULL;
+}
+
+void config_init(struct cfg *cfg)
+{
+        memset(cfg, 0, sizeof(struct cfg));
+        INIT_LIST_HEAD( &(cfg->accountcfg_list) );
 }
 
 int config_free(struct cfg *cfg)
