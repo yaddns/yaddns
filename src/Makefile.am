@@ -19,4 +19,5 @@ yaddns_SOURCES +=  service.h \
 	services/dyndns.c \
 	services/dyndnsit.c \
 	services/no-ip.c \
-	services/ovh.c
+	services/ovh.c \
+	services/sitelutions.c
