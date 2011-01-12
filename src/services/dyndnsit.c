@@ -138,7 +138,7 @@ static int ddns_write(const struct accountcfg cfg,
 					"GET /nic/update?system=dyndns"
 					"&hostname=%s"
 					"&myip=%s"
-					" HTTP/1.1\r\n"
+					" HTTP/1.0\r\n"
 					"Host: " DDNS_HOST "\r\n"
 					"Authorization: Basic %s\r\n"
 					"User-Agent: " PACKAGE "/" VERSION "\r\n"

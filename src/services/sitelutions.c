@@ -103,7 +103,7 @@ static int ddns_write(const struct accountcfg cfg,
 					"&user=%s"
 					"&pass=%s"
 					"&ip=%s"
-					" HTTP/1.1\r\n"
+					" HTTP/1.0\r\n"
 					"Host: " DDNS_HOST "\r\n"
 					"User-Agent: " PACKAGE "/" VERSION "\r\n"
 					"Connection: close\r\n"
