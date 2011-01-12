@@ -239,6 +239,7 @@ static void request_process_recv(struct request *request)
         {
                   log_error("Error when reading socket %d: %m",
                             request->s);
+                  request->state = FSError;
                   return;
         }
 
