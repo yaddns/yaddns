@@ -79,6 +79,7 @@ exit_error:
         if(request->s >= 0)
         {
                 close(request->s);
+                request->s = -1;
         }
 
         return -1;
