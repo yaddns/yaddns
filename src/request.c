@@ -233,22 +233,25 @@ static void request_process_recv(struct request *request)
 
         n = recv(request->s,
                  request->buff.data,
-                 sizeof(request->buff.data),
+                 sizeof(request->buff.data) - 1,
                  0);
         if(n < 0)
         {
-                  log_error("Error when reading socket %d: %m",
-                            request->s);
-                  request->state = FSError;
-                  return;
+                log_error("Error when reading socket %d: %m",
+                          request->s);
+                request->state = FSError;
         }
+        else
+        {
+                /* put the \0 at end */
+                request->buff.data[n] = '\0';
+                log_debug("Recv %u bytes: %s", n, request->buff.data);
 
-        log_debug("Recv %u bytes: %.*s", n, n, request->buff.data);
+                request->buff.data_size = n;
+                request->buff.data_ack = n;
 
-        request->buff.data_size = n;
-        request->buff.data_ack = n;
-
-        request->state = FSResponseReceived;
+                request->state = FSResponseReceived;
+        }
 
         /* call hook func */
         request->ctl.hook_func(request, request->ctl.hook_data);
