@@ -1,5 +1,5 @@
 AC_PREREQ(2.62)
-AC_INIT(yaddns, 1.0-rc2, avd@patatrac.info)
+AC_INIT(yaddns, 1.0-rc3, avd@patatrac.info)
 AM_INIT_AUTOMAKE([foreign])
 
 AC_PROG_CC
