@@ -60,10 +60,13 @@ static struct {
 	int freeze;
 	int freezetime;
 } rc_map[] = {
-	{ "200",
-		"Successful Update",
-		up_success,
-		0, 0, 0 },
+	{ .code = "200",
+	  .text = "Successful Update",
+	  .unified_rc = up_success,
+	  .lock = 0,
+          .freeze = 0,
+          .freezetime = 0,
+        },
 	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
