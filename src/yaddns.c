@@ -136,7 +136,6 @@ int main(int argc, char **argv)
         sigset_t unblocked;
         struct cfg cfg, cfgre;
         struct timespec timeout = {0, 0};
-        struct timeval lasttimeofday = {0, 0};
 	fd_set readset, writeset;
 	int max_fd = -1;
 	FILE *fpid = NULL;
@@ -309,9 +308,6 @@ int main(int argc, char **argv)
 
                 /* process fds with have new state */
                 request_ctl_processfds(&readset, &writeset);
-
-                /* save last timeofday */
-                memcpy(&lasttimeofday, &timeofday, sizeof(struct timeval));
 	}
 
         log_debug("cleaning before exit");
