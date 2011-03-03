@@ -34,7 +34,7 @@ struct upreply_report {
 		up_account_loginpass_error,
 		up_account_hostname_error,
 		up_account_abuse_error,
-		up_server_error
+		up_server_error,
 	} code;
 	char custom_rc[16]; /* small return code receive by server */
 	char custom_rc_text[64]; /* explanation of return code in english */

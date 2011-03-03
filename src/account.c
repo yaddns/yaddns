@@ -29,13 +29,20 @@ static void account_reqhook_readresponse(struct account *account,
                                          struct request_buff *buff)
 {
         int ret;
-        struct upreply_report report;
+        struct upreply_report report = {
+                .code = up_unknown_error,
+                .custom_rc = "",
+                .custom_rc_text = "",
+                .rcmd_lock = 0,
+                .rcmd_freeze = 0,
+                .rcmd_freezetime = 0,
+        };
 
         ret = account->def->read_resp(buff,
                                       &report);
         if(ret != 0)
         {
-                log_error("Service %s read failed (Unknown error)",
+                log_error("Service %s read failed (critical error)",
                           account->def->name);
                 account->locked = 1;
                 account->status = ASError;
@@ -53,8 +60,11 @@ static void account_reqhook_readresponse(struct account *account,
         }
         else
         {
-                log_notice("update failed for account '%s' (rc=%d)",
-                           account->cfg->name, report.code);
+                log_notice("update failed for account '%s' (%d: %s - %s)",
+                           account->cfg->name,
+                           report.code,
+                           report.custom_rc,
+                           report.custom_rc_text);
 
                 account->status = ASError;
                 account->locked = report.rcmd_lock;
