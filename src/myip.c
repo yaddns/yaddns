@@ -149,7 +149,7 @@ static int myip_sendrequest(const char *host,
         memset(&req_buff, 0, sizeof(req_buff));
 
         n = snprintf(req_buff.data, sizeof(req_buff.data),
-                     "GET %s HTTP/1.1\r\n"
+                     "GET %s HTTP/1.0\r\n"
                      "Host: %s\r\n\r\n",
                      path, host);
         req_buff.data_size = n;
