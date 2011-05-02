@@ -318,6 +318,13 @@ int account_ctl_mapnewcfg(struct cfg *oldcfg,
 
         INIT_LIST_HEAD(&bridger_list);
 
+        /*
+         * For each entry in new cfg, compare with old entries and
+         * alloc a bridge struct with the flag:
+         * - TMirror if entry doesn't change
+         * - TNew if entry is new (not present in old cfg)
+         * - TUpdate if entry is updated from old one.
+         */
         list_for_each_entry(new_actcfg,
                             &(newcfg->accountcfg_list), list)
         {
