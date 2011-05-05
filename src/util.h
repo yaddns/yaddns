@@ -25,6 +25,8 @@
 
 #define UNUSED(x) ( (void)(x) )
 
+#define ARRAY_SIZE(x) (sizeof (x) / sizeof ((x) [0]))
+
 /*
  * Encode src txt in base64 and fill malloced ouput
  *
