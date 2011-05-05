@@ -24,10 +24,10 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include "service.h"
-#include "request.h"
-#include "util.h"
-#include "log.h"
+#include "../service.h"
+#include "../request.h"
+#include "../util.h"
+#include "../log.h"
 
 /*
  * http://dyndns.it/go.php?p=techspec.html
