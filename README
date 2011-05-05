@@ -13,6 +13,15 @@ Compilation/Installation
  make
  make install
 
+Compilation tricks for developpers
+----------------------------------
+
+To have debug messages, set the DEBUG flag with this command:
+ CFLAGS="-DDEBUG" ./configure
+
+If you want to compile and execute test programs from tests/ directory, type:
+ make check
+
 License
 -------
 
