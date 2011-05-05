@@ -66,8 +66,7 @@ extern void account_ctl_needupdate(void);
 extern int account_ctl_mapcfg(struct cfg *cfg);
 
 /* after reading a new cfg, resync controler */
-extern int account_ctl_mapnewcfg(struct cfg *oldcfg,
-                                 const struct cfg *newcfg);
+extern int account_ctl_mapnewcfg(const struct cfg *newcfg);
 
 extern struct account *account_ctl_get(const char *accountname);
 

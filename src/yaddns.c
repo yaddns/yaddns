@@ -121,7 +121,7 @@ static void wanip_manage(const struct cfg *cfg)
                 {
                         wanip.s_addr = fresh_wanip.s_addr;
 
-                        log_debug("new wan ip ! %s",
+                        log_notice("We have a new wan ip = %s !",
                                   inet_ntoa(wanip));
 
                         /* account need to be updated */
@@ -130,11 +130,59 @@ static void wanip_manage(const struct cfg *cfg)
         }
 }
 
+static int reload_conf(struct cfg *cfg)
+{
+        struct cfg cfgre;
+        int ret = -1;
+
+        config_init(&cfgre);
+
+        if(config_parse_file(&cfgre, cfg->cfgfile) != 0)
+        {
+                log_error("The new configuration file is invalid. Fix it.");
+                return -1;
+        }
+
+        if(account_ctl_mapnewcfg(&cfgre) == 0)
+        {
+                if(cfgre.wan_cnt_type == wan_cnt_direct)
+                {
+                        if(strcmp(cfgre.wan_ifname,
+                                  cfg->wan_ifname) != 0)
+                        {
+                                /* if wan ifname change, reupdate all
+                                 * accounts
+                                 */
+                                account_ctl_needupdate();
+                        }
+                }
+                else if(cfgre.wan_cnt_type == wan_cnt_indirect)
+                {
+                        myip_needupdate();
+                }
+
+                /* update configuration */
+                config_move(&cfgre, cfg);
+
+                ret = 0;
+        }
+        else
+        {
+                log_error("Unable to map the new configuration."
+                          " Fix config file");
+                ret = -1;
+        }
+
+        config_free(&cfgre);
+
+        return ret;
+}
+
 int main(int argc, char **argv)
 {
 	int ret = 0;
         sigset_t unblocked;
-        struct cfg cfg, cfgre;
+        struct cfg cfg;
         struct timespec timeout = {0, 0};
 	fd_set readset, writeset;
 	int max_fd = -1;
@@ -218,52 +266,13 @@ int main(int argc, char **argv)
 
                 /* get current time */
                 util_getuptime(&timeofday);
-                timeout.tv_sec = 15;
 
                 /* reload config ? */
                 if(reloadconf)
                 {
                         log_debug("reload configuration");
 
-                        config_init(&cfgre);
-
-                        if(config_parse_file(&cfgre, cfg.cfgfile) == 0)
-                        {
-                                if(account_ctl_mapnewcfg(&cfg, &cfgre) == 0)
-                                {
-                                        /* if change wan ifname, reupdate all
-                                         * accounts
-                                         */
-                                        if(cfgre.wan_cnt_type == wan_cnt_direct
-                                           && strcmp(cfgre.wan_ifname,
-                                                     cfg.wan_ifname) != 0)
-                                        {
-                                                account_ctl_needupdate();
-                                        }
-
-                                        if(cfgre.wan_cnt_type == wan_cnt_indirect)
-                                        {
-                                                myip_needupdate();
-                                        }
-
-                                        /* use new configuration */
-                                        cfgre.cfgfile = strdup(cfg.cfgfile);
-
-                                        config_free(&cfg);
-                                        config_copy(&cfg, &cfgre);
-                                }
-                                else
-                                {
-                                        log_error("Unable to map the new "
-                                                  "configuration. Fix config file");
-                                        config_free(&cfgre);
-                                }
-                        }
-                        else
-                        {
-                                log_error("The new configuration file is "
-                                          "invalid. fix it.");
-                        }
+                        reload_conf(&cfg);
 
                         reloadconf = 0;
                 }
@@ -278,6 +287,7 @@ int main(int argc, char **argv)
                 request_ctl_selectfds(&readset, &writeset, &max_fd);
 
                 /* pselect */
+                timeout.tv_sec = 15;
                 if(pselect(max_fd + 1,
                            &readset, &writeset, NULL,
                            &timeout, &unblocked) < 0)

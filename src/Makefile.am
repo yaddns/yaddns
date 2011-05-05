@@ -1,3 +1,5 @@
+SUBDIRS = services
+
 AM_CFLAGS = -Wall -Wextra -Wfloat-equal -Wundef -Wshadow \
 	-Wpointer-arith -Wstrict-overflow=5 \
 	-Wwrite-strings -Waggregate-return -Wformat=2
@@ -12,12 +14,5 @@ yaddns_SOURCES = yaddns.c yaddns.h \
 	util.c util.h \
 	myip.c myip.h \
 	list.h \
-	services.c services.h
-
-yaddns_SOURCES +=  service.h \
-	services/changeip.c \
-	services/dyndns.c \
-	services/dyndnsit.c \
-	services/no-ip.c \
-	services/ovh.c \
-	services/sitelutions.c
+	services.c services.h service.h
+yaddns_LDADD = services/libservices.a
