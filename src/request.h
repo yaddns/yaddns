@@ -131,4 +131,9 @@ void request_ctl_selectfds(fd_set *readset, fd_set *writeset, int *max_fd);
  */
 void request_ctl_processfds(fd_set *readset, fd_set *writeset);
 
+/*
+ * Remove all current requests
+ */
+int request_ctl_remove_by_hook_data(const void *hook_data);
+
 #endif

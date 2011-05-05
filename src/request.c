@@ -415,6 +415,7 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
                         if(request->s >= 0)
                         {
                                 close(request->s);
+                                request->s = -1;
                         }
 
                         list_del(&(request->list));
@@ -423,3 +424,32 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
         }
 }
 
+int request_ctl_remove_by_hook_data(const void *hook_data)
+{
+        struct request *request = NULL,
+                *safe = NULL;
+        int i = 0;
+
+        list_for_each_entry_safe(request, safe,
+                                 &request_list, list)
+        {
+                if(request->ctl.hook_data == hook_data)
+                {
+                        ++i;
+
+                        log_debug("remove &request:%p - state:%d - socket:%d",
+                                  request, request->state, request->s);
+
+                        if(request->s >= 0)
+                        {
+                                close(request->s);
+                                request->s = -1;
+                        }
+
+                        list_del(&(request->list));
+                        free(request);
+                }
+        }
+
+        return i;
+}
