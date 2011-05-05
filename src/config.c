@@ -20,7 +20,7 @@
 /* #define CFG_DEFAULT_MYIP_PATH "/" */
 /* #define CFG_DEFAULT_MYIP_UPINT 60 */
 
-#define CFG_FREE(itname) do {                                           \
+#define CFG_FREE_STR(itname) do {                                       \
                 if(itname != NULL)                                      \
                 {                                                       \
                         free(itname);                                   \
@@ -28,9 +28,14 @@
                 }                                                       \
         } while(0)
 
-#define CFG_SET_VALUE(itname, value) do {                               \
-                CFG_FREE(itname);                                       \
+#define CFG_SET_STR(itname, value) do {                                 \
+                CFG_FREE_STR(itname);                                   \
                 itname = strdup(value);                                 \
+        } while(0)
+
+#define CFG_SET_ALLOCATED_STR(itname, value) do {                       \
+                CFG_FREE_STR(itname);                                   \
+                itname = value;                                         \
         } while(0)
 
 /*
@@ -323,11 +328,11 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                                   accountcfg->service,
                                                   filename, linenum);
 
-                                        CFG_FREE(accountcfg->name);
-                                        CFG_FREE(accountcfg->service);
-                                        CFG_FREE(accountcfg->username);
-                                        CFG_FREE(accountcfg->passwd);
-                                        CFG_FREE(accountcfg->name);
+                                        CFG_FREE_STR(accountcfg->name);
+                                        CFG_FREE_STR(accountcfg->service);
+                                        CFG_FREE_STR(accountcfg->username);
+                                        CFG_FREE_STR(accountcfg->passwd);
+                                        CFG_FREE_STR(accountcfg->hostname);
                                         free(accountcfg);
 
                                         ret = -1;
@@ -339,23 +344,23 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                         }
                         else if(strcmp(name, "name") == 0)
                         {
-                                CFG_SET_VALUE(accountcfg->name, value);
+                                CFG_SET_STR(accountcfg->name, value);
                         }
                         else if(strcmp(name, "service") == 0)
                         {
-                                CFG_SET_VALUE(accountcfg->service, value);
+                                CFG_SET_STR(accountcfg->service, value);
                         }
                         else if(strcmp(name, "username") == 0)
                         {
-                                CFG_SET_VALUE(accountcfg->username, value);
+                                CFG_SET_STR(accountcfg->username, value);
                         }
                         else if(strcmp(name, "password") == 0)
                         {
-                                CFG_SET_VALUE(accountcfg->passwd, value);
+                                CFG_SET_STR(accountcfg->passwd, value);
                         }
                         else if(strcmp(name, "hostname") == 0)
                         {
-                                CFG_SET_VALUE(accountcfg->hostname, value);
+                                CFG_SET_STR(accountcfg->hostname, value);
                         }
                         else
                         {
@@ -375,7 +380,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 }
                 else if(strcmp(name, "wanifname") == 0)
                 {
-                        CFG_SET_VALUE(cfg->wan_ifname, value);
+                        CFG_SET_STR(cfg->wan_ifname, value);
                 }
                 else if(strcmp(name, "mode") == 0)
                 {
@@ -390,7 +395,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 }
                 else if(strcmp(name, "myip_host") == 0)
                 {
-                        CFG_SET_VALUE(cfg->myip.host, value);
+                        CFG_SET_STR(cfg->myip.host, value);
                         ++myip_assign_count;
                 }
                 else if(strcmp(name, "myip_port") == 0)
@@ -408,7 +413,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 }
                 else if(strcmp(name, "myip_path") == 0)
                 {
-                        CFG_SET_VALUE(cfg->myip.path, value);
+                        CFG_SET_STR(cfg->myip.path, value);
                         ++myip_assign_count;
                 }
                 else if(strcmp(name, "myip_upint") == 0)
@@ -472,18 +477,18 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         if(ret == -1)
         {
                 /* error. need to cleanup */
-                CFG_FREE(cfg->wan_ifname);
-                CFG_FREE(cfg->myip.host);
-                CFG_FREE(cfg->myip.path);
+                CFG_FREE_STR(cfg->wan_ifname);
+                CFG_FREE_STR(cfg->myip.host);
+                CFG_FREE_STR(cfg->myip.path);
 
                 list_for_each_entry_safe(accountcfg, safe_accountcfg,
                                          &(cfg->accountcfg_list), list)
                 {
-                        CFG_FREE(accountcfg->name);
-                        CFG_FREE(accountcfg->service);
-                        CFG_FREE(accountcfg->username);
-                        CFG_FREE(accountcfg->passwd);
-                        CFG_FREE(accountcfg->name);
+                        CFG_FREE_STR(accountcfg->name);
+                        CFG_FREE_STR(accountcfg->service);
+                        CFG_FREE_STR(accountcfg->username);
+                        CFG_FREE_STR(accountcfg->passwd);
+                        CFG_FREE_STR(accountcfg->hostname);
 
                         list_del(&(accountcfg->list));
                         free(accountcfg);
@@ -523,20 +528,20 @@ int config_free(struct cfg *cfg)
         struct accountcfg *accountcfg = NULL,
                 *safe = NULL;
 
-        CFG_FREE(cfg->wan_ifname);
-        CFG_FREE(cfg->myip.host);
-        CFG_FREE(cfg->myip.path);
-        CFG_FREE(cfg->cfgfile);
-        CFG_FREE(cfg->pidfile);
+        CFG_FREE_STR(cfg->wan_ifname);
+        CFG_FREE_STR(cfg->myip.host);
+        CFG_FREE_STR(cfg->myip.path);
+        CFG_FREE_STR(cfg->cfgfile);
+        CFG_FREE_STR(cfg->pidfile);
 
         list_for_each_entry_safe(accountcfg, safe,
                                  &(cfg->accountcfg_list), list)
         {
-                CFG_FREE(accountcfg->name);
-                CFG_FREE(accountcfg->service);
-                CFG_FREE(accountcfg->username);
-                CFG_FREE(accountcfg->passwd);
-                CFG_FREE(accountcfg->hostname);
+                CFG_FREE_STR(accountcfg->name);
+                CFG_FREE_STR(accountcfg->service);
+                CFG_FREE_STR(accountcfg->username);
+                CFG_FREE_STR(accountcfg->passwd);
+                CFG_FREE_STR(accountcfg->hostname);
 
                 list_del(&(accountcfg->list));
                 free(accountcfg);
@@ -567,17 +572,31 @@ void config_print(struct cfg *cfg)
         }
 }
 
-void config_copy(struct cfg *cfgdst, const struct cfg *cfgsrc)
+void config_move(struct cfg *cfgsrc, struct cfg *cfgdst)
 {
         struct accountcfg *actcfg = NULL,
                 *safe_actcfg = NULL;
 
-        memcpy(cfgdst, cfgsrc,
-               sizeof(struct cfg) - sizeof(struct list_head));
+        /* general cfg */
+        cfgdst->wan_cnt_type = cfgsrc->wan_cnt_type;
+        CFG_SET_ALLOCATED_STR(cfgdst->wan_ifname, cfgsrc->wan_ifname);
+        CFG_SET_ALLOCATED_STR(cfgdst->cfgfile, cfgsrc->cfgfile);
+        CFG_SET_ALLOCATED_STR(cfgdst->pidfile, cfgsrc->pidfile);
+        cfgdst->daemonize = cfgsrc->daemonize;
+
+        /* myip cfg */
+        CFG_SET_ALLOCATED_STR(cfgdst->myip.host, cfgsrc->myip.host);
+        CFG_SET_ALLOCATED_STR(cfgdst->myip.path, cfgsrc->myip.path);
+        cfgdst->myip.port = cfgsrc->myip.port;
+        cfgdst->myip.upint = cfgsrc->myip.upint;
+
+        /* account(s) cfg */
         list_for_each_entry_safe(actcfg, safe_actcfg,
                                  &(cfgsrc->accountcfg_list), list)
         {
-                list_move(&(actcfg->list),
-                          &(cfgdst->accountcfg_list));
+                list_move(&(actcfg->list), &(cfgdst->accountcfg_list));
         }
+
+        /* it's a move, so clean up src config */
+        config_free(cfgsrc);
 }

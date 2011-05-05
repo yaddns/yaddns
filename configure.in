@@ -4,7 +4,15 @@ AM_INIT_AUTOMAKE([foreign])
 
 AC_PROG_CC
 AC_PROG_INSTALL
+AC_PROG_RANLIB
 
 AC_SEARCH_LIBS(clock_gettime, rt)
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_CONFIG_FILES([
+Makefile
+src/Makefile
+src/services/Makefile
+tests/Makefile
+])
+
+AC_OUTPUT

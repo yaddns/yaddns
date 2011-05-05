@@ -21,6 +21,7 @@ static void account_reqhook_readresponse(struct account *account,
                                          struct request_buff *buff);
 static void account_reqhook_error(struct account *account,
                                   int errcode);
+static void account_reqhook(struct request *request, void *data);
 
 /*
  * Decs static functions
@@ -85,7 +86,7 @@ static void account_reqhook_error(struct account *account,
         log_error("account %s update failed (errcode=%d)", errcode);
 }
 
-void account_reqhook(struct request *request, void *data)
+static void account_reqhook(struct request *request, void *data)
 {
         struct account *account = data;
 
@@ -181,10 +182,10 @@ void account_ctl_manage(void)
                    && !account->updated
                    && account->status != ASWorking)
                 {
-                        log_debug("Account '%s' service '%s'"
-                                  " need to be updated !",
-                                  account->cfg->name,
-                                  account->cfg->service);
+                        log_notice("Account '%s' service '%s'"
+                                   " need to be updated !",
+                                   account->cfg->name,
+                                   account->cfg->service);
 
                         /* req_host structure */
                         snprintf(req_host.addr, sizeof(req_host.addr),
@@ -286,194 +287,133 @@ int account_ctl_mapcfg(struct cfg *cfg)
         return ret;
 }
 
-/*
- * update service already living
- * create if service not exist
- */
-struct bridger {
-        enum {
-                TMirror = 0,
-                TNew,
-                TUpdate,
-        } type;
-        struct accountcfg *cfg;
-        struct account *ctl;
-        struct list_head list;
-};
-
-int account_ctl_mapnewcfg(struct cfg *oldcfg,
-                          const struct cfg *newcfg)
+int account_ctl_mapnewcfg(const struct cfg *newcfg)
 {
-        int ret = 0;
-        int ismapped = 0;
+        int ret = 0, found = 0;
 
-        struct accountcfg *new_actcfg = NULL,
-                *old_actcfg = NULL;
-        struct account *actctl = NULL;
+        struct list_head entry_tomap_list;
+        struct {
+                struct accountcfg *newcfg;
+                struct service *service;
+                struct list_head list;
+        } *entry_tomap = NULL,
+                  *entry_tomap_safe = NULL;
+
+        struct accountcfg *new_actcfg = NULL;
+        struct account *accountctl = NULL,
+                *accountctl_safe = NULL;
         struct service *service = NULL;
 
-        struct bridger *bridger = NULL,
-                *safe_bridger = NULL;
-        struct list_head bridger_list;
+        INIT_LIST_HEAD(&entry_tomap_list);
 
-        INIT_LIST_HEAD(&bridger_list);
-
-        /*
-         * For each entry in new cfg, compare with old entries and
-         * alloc a bridge struct with the flag:
-         * - TMirror if entry doesn't change
-         * - TNew if entry is new (not present in old cfg)
-         * - TUpdate if entry is updated from old one.
+        /* - make a list with all account cfg from newcfg (because
+         *   we need to know which account cfg haven't account
+         *   struct already defined).
+         * - check service exist for all account cfg.
          */
-        list_for_each_entry(new_actcfg,
-                            &(newcfg->accountcfg_list), list)
+        list_for_each_entry(new_actcfg, &(newcfg->accountcfg_list), list)
         {
-                old_actcfg = config_account_get(oldcfg, new_actcfg->name);
-                if(old_actcfg != NULL)
+                /* check the service exist */
+                found = 0;
+                list_for_each_entry(service,
+                                    &(service_list), list)
                 {
-                        /* retrieve the ctl */
-                        actctl = account_ctl_get(new_actcfg->name);
-                        if(actctl == NULL)
+                        if(strcmp(service->name, new_actcfg->service) == 0)
                         {
-                                log_critical("Unable to get account ctl "
-                                             "for account '%s'",
-                                             new_actcfg->name);
-                                ret = -1;
-                                break;
-                        }
+                                found = 1;
 
-                        bridger = calloc(1, sizeof(struct bridger));
-                        bridger->cfg = new_actcfg; /* link the new cfg */
-                        bridger->ctl = actctl; /* link the old ctl */
+                                /* create a new entry and add to the list */
+                                entry_tomap = alloca(sizeof(*entry_tomap));
+                                entry_tomap->newcfg = new_actcfg;
+                                entry_tomap->service = service;
 
-                        if(strcmp(new_actcfg->service,
-                                  old_actcfg->service) != 0
-                           || strcmp(new_actcfg->username,
-                                     old_actcfg->username) != 0
-                           || strcmp(new_actcfg->passwd,
-                                     old_actcfg->passwd) != 0
-                           || strcmp(new_actcfg->hostname,
-                                     old_actcfg->hostname) != 0)
-                        {
-                                /* it's an update */
-                                bridger->type = TUpdate;
-                        }
-                        else
-                        {
-                                bridger->type = TMirror;
-                        }
-
-                        list_add(&(bridger->list),
-                                 &bridger_list);
-
-                }
-                else
-                {
-                        ismapped = 0;
-
-                        /* not found so it's a new account */
-                        list_for_each_entry(service,
-                                            &(service_list), list)
-                        {
-                                if(strcmp(service->name,
-                                          new_actcfg->service) == 0)
-                                {
-                                        actctl = calloc(1,
-                                                        sizeof(struct account));
-                                        actctl->def = service;
-
-                                        bridger = calloc(1,
-                                                         sizeof(struct bridger));
-                                        bridger->type = TNew;
-                                        bridger->cfg = new_actcfg;
-                                        bridger->ctl = actctl;
-
-                                        list_add(&(bridger->list),
-                                                 &bridger_list);
-
-                                        ismapped = 1;
-                                        break;
-                                }
-                        }
-
-                        if(!ismapped)
-                        {
-                                log_error("No service named '%s' available !",
-                                          new_actcfg->service);
-
-                                ret = -1;
-                                break;
+                                list_add(&(entry_tomap->list),
+                                         &entry_tomap_list);
                         }
                 }
 
+                if(!found)
+                {
+                        log_error("No service named '%s' available !"
+                                  " Abort the new config file.",
+                                  new_actcfg->service);
+                        ret = -1;
+                        goto out;
+                }
         }
 
-        if(ret == 0)
+        /* for each account already registered, check is defined in the
+         * new config. If not, remove account reference. Otherwise, compare
+         * the new config with old one. If account cfg is different,
+         * reset the account (to try a new update).
+         * And finally, link the new account config to the account.
+         */
+        list_for_each_entry_safe(accountctl, accountctl_safe,
+                                 &(account_list), list)
         {
-                /* all is good, so finish the mapping */
-                list_for_each_entry(bridger,
-                                    &(bridger_list), list)
+                found = 0;
+                list_for_each_entry_safe(entry_tomap, entry_tomap_safe,
+                                         &(entry_tomap_list), list)
                 {
-                        bridger->ctl->cfg = bridger->cfg;
-
-                        if(bridger->type == TUpdate)
+                        if(strcmp(accountctl->cfg->name,
+                                  entry_tomap->newcfg->name) == 0)
                         {
-                                bridger->ctl->updated = 0;
-                                bridger->ctl->locked = 0;
-                                bridger->ctl->freezed = 0;
-                        }
+                                /* found reference in new cfg */
+                                found = 1;
 
-                        if(bridger->type == TNew)
-                        {
-                                /* add to the account list */
-                                list_add(&(bridger->ctl->list),
-                                         &(account_list));
+                                /* view it cfg has changed */
+                                if(strcmp(entry_tomap->newcfg->service,
+                                          accountctl->cfg->service) != 0
+                                   || strcmp(entry_tomap->newcfg->username,
+                                             accountctl->cfg->username) != 0
+                                   || strcmp(entry_tomap->newcfg->passwd,
+                                             accountctl->cfg->passwd) != 0
+                                   || strcmp(entry_tomap->newcfg->hostname,
+                                             accountctl->cfg->hostname) != 0)
+                                {
+                                        /* cfg has changed */
+                                        accountctl->updated = 0;
+                                        accountctl->locked = 0;
+                                        accountctl->freezed = 0;
+                                }
+
+                                /* link the new cfg to account ctl struct */
+                                accountctl->cfg = entry_tomap->newcfg;
+                                accountctl->def = entry_tomap->service;
+
+                                /* the entry was mapped */
+                                list_del(&(entry_tomap->list));
                         }
                 }
 
-                /* remove unused account ctl */
-                list_for_each_entry(old_actcfg,
-                                    &(oldcfg->accountcfg_list), list)
+                if(!found)
                 {
-                        new_actcfg = config_account_get(newcfg, old_actcfg->name);
-                        if(new_actcfg == NULL)
-                        {
-                                /* need to remove */
-                                actctl = account_ctl_get(old_actcfg->name);
-                                if(actctl != NULL)
-                                {
-                                        log_debug("remove unused ctl '%p'",
-                                                  actctl);
+                        /* remove reference of account */
+                        log_debug("Remove unused account ctl '%s'",
+                                  accountctl->cfg->name);
 
-                                        list_del(&(actctl->list));
-                                }
-                                else
-                                {
-                                        log_critical("Unable to get account "
-                                                     "ctl for '%s'. Continue..",
-                                                     old_actcfg->name);
-                                }
-                        }
+                        /* This old reference must not be used anymore,
+                         * this is why we remove all request which can
+                         * reference accountctl.
+                         */
+                        request_ctl_remove_by_hook_data(accountctl);
+
+                        list_del(&(accountctl->list));
+                        free(accountctl);
                 }
-
         }
 
-        /* clean up */
-        list_for_each_entry_safe(bridger, safe_bridger,
-                                 &(bridger_list), list)
+        /* all entries not already mapped need a new account ctl struct */
+        list_for_each_entry(entry_tomap, &(entry_tomap_list), list)
         {
-                if(ret != 0)
-                {
-                        if(bridger->type == TNew)
-                        {
-                                free(bridger->ctl);
-                        }
-                }
+                accountctl = calloc(1, sizeof(struct account));
+                accountctl->cfg = entry_tomap->newcfg;
+                accountctl->def = entry_tomap->service;
 
-                list_del(&(bridger->list));
-                free(bridger);
+                list_add(&(accountctl->list), &(account_list));
         }
 
+out:
         return ret;
 }
 
