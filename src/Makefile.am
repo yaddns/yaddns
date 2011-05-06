@@ -1,9 +1,5 @@
 SUBDIRS = services
 
-AM_CFLAGS = -Wall -Wextra -Wfloat-equal -Wundef -Wshadow \
-	-Wpointer-arith -Wstrict-overflow=5 \
-	-Wwrite-strings -Waggregate-return -Wformat=2
-
 bin_PROGRAMS = yaddns
 
 yaddns_SOURCES = yaddns.c yaddns.h \

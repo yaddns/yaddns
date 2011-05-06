@@ -33,7 +33,7 @@ TEST_DEF(test_request_remove)
         {
                 request = calloc(1, sizeof(struct request));
 
-                request->ctl.hook_data = datas[i];
+                request->ctl.hook_data = (void*)datas[i];
                 
                 list_add(&(request->list), &request_list);
         }
@@ -52,7 +52,7 @@ TEST_DEF(test_request_remove)
         {
                 request = calloc(1, sizeof(struct request));
 
-                request->ctl.hook_data = datas[i];
+                request->ctl.hook_data = (void*)datas[i];
 
                 list_add(&(request->list), &request_list);
         }

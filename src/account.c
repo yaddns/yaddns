@@ -372,6 +372,10 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
                                              accountctl->cfg->hostname) != 0)
                                 {
                                         /* cfg has changed */
+                                        log_debug("account cfg for '%s'"
+                                                  " has changed",
+                                                  entry_tomap->newcfg->name);
+
                                         accountctl->updated = 0;
                                         accountctl->locked = 0;
                                         accountctl->freezed = 0;
@@ -406,6 +410,9 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
         /* all entries not already mapped need a new account ctl struct */
         list_for_each_entry(entry_tomap, &(entry_tomap_list), list)
         {
+                log_debug("New account '%s'",
+                          entry_tomap->newcfg->name);
+
                 accountctl = calloc(1, sizeof(struct account));
                 accountctl->cfg = entry_tomap->newcfg;
                 accountctl->def = entry_tomap->service;
