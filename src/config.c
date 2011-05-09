@@ -235,7 +235,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         }
 
         /* check if there account defined */
-        if(list_empty(&(cfg->accountcfg_list)))
+        if(list_empty(&(cfg->account_list)))
         {
                 log_warning("No account defined.");
         }
@@ -252,14 +252,14 @@ int config_parse_file(struct cfg *cfg)
 	int linenum = 0;
 	char *name = NULL, *value = NULL;
         int accountdef_scope = 0;
-        struct accountcfg *accountcfg = NULL,
+        struct cfg_account *accountcfg = NULL,
                 *safe_accountcfg = NULL;
         int myip_assign_count = 0;
         const char *filename = NULL;
 
         if(!cfgstr_is_set(&(cfg->cfgfile)))
         {
-                log_error("No config filename is set");
+                log_error("Config filename isn't set");
                 return -1;
         }
 
@@ -311,7 +311,7 @@ int config_parse_file(struct cfg *cfg)
                                 }
 
                                 list_add(&(accountcfg->list),
-                                         &(cfg->accountcfg_list));
+                                         &(cfg->account_list));
                         }
                         else if(strcmp(name, "name") == 0)
                         {
@@ -347,7 +347,7 @@ int config_parse_file(struct cfg *cfg)
                 else if(strcmp(name, "account") == 0)
                 {
                         accountdef_scope = 1;
-                        accountcfg = calloc(1, sizeof(struct accountcfg));
+                        accountcfg = calloc(1, sizeof(struct cfg_account));
                         log_debug("add accountcfg '%p'", accountcfg);
                 }
                 else if(strcmp(name, "wanifname") == 0)
@@ -456,7 +456,7 @@ int config_parse_file(struct cfg *cfg)
                 cfgstr_unset(&(cfg->myip.path));
 
                 list_for_each_entry_safe(accountcfg, safe_accountcfg,
-                                         &(cfg->accountcfg_list), list)
+                                         &(cfg->account_list), list)
                 {
                         cfgstr_unset(&(accountcfg->name));
                         cfgstr_unset(&(accountcfg->service));
@@ -475,12 +475,12 @@ int config_parse_file(struct cfg *cfg)
 	return ret;
 }
 
-struct accountcfg *config_account_get(const struct cfg *cfg, const char *name)
+struct cfg_account *config_account_get(const struct cfg *cfg, const char *name)
 {
-        struct accountcfg *accountcfg = NULL;
+        struct cfg_account *accountcfg = NULL;
 
         list_for_each_entry(accountcfg,
-                            &(cfg->accountcfg_list), list)
+                            &(cfg->account_list), list)
         {
                 if(strcmp(cfgstr_get(&(accountcfg->name)), name) == 0)
                 {
@@ -495,12 +495,12 @@ void config_init(struct cfg *cfg)
 {
         memset(cfg, 0, sizeof(struct cfg));
 
-        INIT_LIST_HEAD( &(cfg->accountcfg_list) );
+        INIT_LIST_HEAD( &(cfg->account_list) );
 }
 
 int config_free(struct cfg *cfg)
 {
-        struct accountcfg *accountcfg = NULL,
+        struct cfg_account *accountcfg = NULL,
                 *safe = NULL;
 
         cfgstr_unset(&(cfg->wan_ifname));
@@ -510,7 +510,7 @@ int config_free(struct cfg *cfg)
         cfgstr_unset(&(cfg->pidfile));
 
         list_for_each_entry_safe(accountcfg, safe,
-                                 &(cfg->accountcfg_list), list)
+                                 &(cfg->account_list), list)
         {
                 cfgstr_unset(&(accountcfg->name));
                 cfgstr_unset(&(accountcfg->service));
@@ -527,7 +527,7 @@ int config_free(struct cfg *cfg)
 
 void config_print(struct cfg *cfg)
 {
-        struct accountcfg *accountcfg = NULL;
+        struct cfg_account *accountcfg = NULL;
 
         printf("Configuration:\n");
         printf(" cfg file = '%s'\n", cfgstr_get(&(cfg->cfgfile)));
@@ -537,7 +537,7 @@ void config_print(struct cfg *cfg)
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
 
         list_for_each_entry(accountcfg,
-                            &(cfg->accountcfg_list), list)
+                            &(cfg->account_list), list)
         {
                 printf(" ---- account name '%s' ----\n",
                        cfgstr_get(&(accountcfg->name)));
@@ -554,7 +554,7 @@ void config_print(struct cfg *cfg)
 
 void config_move(struct cfg *cfgsrc, struct cfg *cfgdst)
 {
-        struct accountcfg *actcfg = NULL,
+        struct cfg_account *actcfg = NULL,
                 *safe_actcfg = NULL;
 
         /* general cfg */
@@ -572,9 +572,9 @@ void config_move(struct cfg *cfgsrc, struct cfg *cfgdst)
 
         /* account(s) cfg */
         list_for_each_entry_safe(actcfg, safe_actcfg,
-                                 &(cfgsrc->accountcfg_list), list)
+                                 &(cfgsrc->account_list), list)
         {
-                list_move(&(actcfg->list), &(cfgdst->accountcfg_list));
+                list_move(&(actcfg->list), &(cfgdst->account_list));
         }
 
         /* it's a move, so clean up src config */

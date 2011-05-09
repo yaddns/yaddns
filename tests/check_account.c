@@ -49,7 +49,7 @@ TEST_DEF(test_account_remap)
         /******* reload good cfg file ********/
         config_init(&cfgre);
 
-        cfgstr_set(&cfg.cfgfile, "yaddns.good.2.conf");
+        cfgstr_set(&cfgre.cfgfile, "yaddns.good.2.conf");
         TEST_ASSERT(config_parse_file(&cfgre) == 0,
                     "config_parse_file(%s) failed",
                     cfgstr_get(&cfg.cfgfile));
@@ -65,7 +65,7 @@ TEST_DEF(test_account_remap)
         /******* reload an another bad cfg file ********/
         config_init(&cfgre);
 
-        cfgstr_set(&cfg.cfgfile,
+        cfgstr_set(&cfgre.cfgfile,
                    "yaddns.invalid.account2_has_invalid_service.conf");
         TEST_ASSERT(config_parse_file(&cfgre) == 0,
                     "config_parse_file(%s) failed !",
@@ -80,7 +80,7 @@ TEST_DEF(test_account_remap)
         /******* reload bad cfg file ********/
         config_init(&cfgre);
 
-        cfgstr_set(&cfg.cfgfile, "yaddns.invalid.unknown_service.conf");
+        cfgstr_set(&cfgre.cfgfile, "yaddns.invalid.unknown_service.conf");
         TEST_ASSERT(config_parse_file(&cfgre) == 0,
                     "config_parse_file(%s) failed !",
                     cfgstr_get(&cfg.cfgfile));
@@ -94,7 +94,7 @@ TEST_DEF(test_account_remap)
         /******* reload the first file ********/
         config_init(&cfgre);
 
-        cfgstr_set(&cfg.cfgfile, "yaddns.good.conf");
+        cfgstr_set(&cfgre.cfgfile, "yaddns.good.conf");
         TEST_ASSERT(config_parse_file(&cfgre) == 0,
                     "config_parse_file(%s) failed !",
                     cfgstr_get(&cfg.cfgfile));

@@ -21,10 +21,10 @@ struct cfg {
         struct cfgstr cfgfile;
         struct cfgstr pidfile;
         int daemonize;
-        struct list_head accountcfg_list;
+        struct list_head account_list;
 };
 
-struct accountcfg {
+struct cfg_account {
         struct cfgstr name; /* must be unique */
         struct cfgstr service;
 	struct cfgstr username;
@@ -41,7 +41,7 @@ extern void config_init(struct cfg *cfg);
 
 extern int config_free(struct cfg *cfg);
 
-extern struct accountcfg * config_account_get(const struct cfg *cfg, const char *name);
+extern struct cfg_account * config_account_get(const struct cfg *cfg, const char *name);
 
 extern void config_print(struct cfg *cfg);
 
