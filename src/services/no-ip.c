@@ -37,7 +37,7 @@
 #define DDNS_HOST "dynupdate.no-ip.com"
 #define DDNS_PORT 80
 
-static int ddns_write(const struct accountcfg cfg,
+static int ddns_write(const struct cfg_account cfg,
                       const char const *newwanip,
                       struct request_buff *buff);
 
@@ -120,7 +120,7 @@ static struct {
 	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
-static int ddns_write(const struct accountcfg cfg,
+static int ddns_write(const struct cfg_account cfg,
                       const char const *newwanip,
                       struct request_buff *buff)
 {

@@ -33,7 +33,7 @@ struct account {
                 ASWorking,
         } status;
         struct service *def;
-	struct accountcfg *cfg;
+	struct cfg_account *cfg;
 	struct timeval last_update;
         int updated; /* account is updated ? */
 	int locked;

@@ -252,7 +252,7 @@ int config_parse_file(struct cfg *cfg)
 	int linenum = 0;
 	char *name = NULL, *value = NULL;
         int accountdef_scope = 0;
-        struct accountcfg *accountcfg = NULL,
+        struct cfg_account *accountcfg = NULL,
                 *safe_accountcfg = NULL;
         int myip_assign_count = 0;
         const char *filename = NULL;
@@ -347,7 +347,7 @@ int config_parse_file(struct cfg *cfg)
                 else if(strcmp(name, "account") == 0)
                 {
                         accountdef_scope = 1;
-                        accountcfg = calloc(1, sizeof(struct accountcfg));
+                        accountcfg = calloc(1, sizeof(struct cfg_account));
                         log_debug("add accountcfg '%p'", accountcfg);
                 }
                 else if(strcmp(name, "wanifname") == 0)
@@ -475,9 +475,9 @@ int config_parse_file(struct cfg *cfg)
 	return ret;
 }
 
-struct accountcfg *config_account_get(const struct cfg *cfg, const char *name)
+struct cfg_account *config_account_get(const struct cfg *cfg, const char *name)
 {
-        struct accountcfg *accountcfg = NULL;
+        struct cfg_account *accountcfg = NULL;
 
         list_for_each_entry(accountcfg,
                             &(cfg->accountcfg_list), list)
@@ -500,7 +500,7 @@ void config_init(struct cfg *cfg)
 
 int config_free(struct cfg *cfg)
 {
-        struct accountcfg *accountcfg = NULL,
+        struct cfg_account *accountcfg = NULL,
                 *safe = NULL;
 
         cfgstr_unset(&(cfg->wan_ifname));
@@ -527,7 +527,7 @@ int config_free(struct cfg *cfg)
 
 void config_print(struct cfg *cfg)
 {
-        struct accountcfg *accountcfg = NULL;
+        struct cfg_account *accountcfg = NULL;
 
         printf("Configuration:\n");
         printf(" cfg file = '%s'\n", cfgstr_get(&(cfg->cfgfile)));
@@ -554,7 +554,7 @@ void config_print(struct cfg *cfg)
 
 void config_move(struct cfg *cfgsrc, struct cfg *cfgdst)
 {
-        struct accountcfg *actcfg = NULL,
+        struct cfg_account *actcfg = NULL,
                 *safe_actcfg = NULL;
 
         /* general cfg */

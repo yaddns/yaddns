@@ -238,7 +238,7 @@ void account_ctl_needupdate(void)
 int account_ctl_mapcfg(struct cfg *cfg)
 {
         struct service *service = NULL;
-        struct accountcfg *accountcfg = NULL;
+        struct cfg_account *accountcfg = NULL;
         struct account *account = NULL,
                 *safe = NULL;
         int ismapped = 0;
@@ -294,13 +294,13 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
 
         struct list_head entry_tomap_list;
         struct {
-                struct accountcfg *newcfg;
+                struct cfg_account *newcfg;
                 struct service *service;
                 struct list_head list;
         } *entry_tomap = NULL,
                   *entry_tomap_safe = NULL;
 
-        struct accountcfg *new_actcfg = NULL;
+        struct cfg_account *new_actcfg = NULL;
         struct account *accountctl = NULL,
                 *accountctl_safe = NULL;
         struct service *service = NULL;
