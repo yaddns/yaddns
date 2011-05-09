@@ -22,7 +22,8 @@ static void teardown(void)
 TEST_DEF(test_request_remove)
 {
         struct request *request = NULL;
-        int i = 0, ret = 0;
+        unsigned int i = 0;
+        int ret = 0;
         const char *datas[] = {
                 "0", "1", "2", "3", "4", "5", "6", "7", "8",
         };
