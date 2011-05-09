@@ -259,7 +259,7 @@ int config_parse_file(struct cfg *cfg)
 
         if(!cfgstr_is_set(&(cfg->cfgfile)))
         {
-                log_error("No config filename is set");
+                log_error("Config filename isn't set");
                 return -1;
         }
 
