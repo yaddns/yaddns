@@ -245,7 +245,7 @@ int account_ctl_mapcfg(struct cfg *cfg)
         int ret = 0;
 
         list_for_each_entry(accountcfg,
-                            &(cfg->accountcfg_list), list)
+                            &(cfg->account_list), list)
         {
                 ismapped = 0;
 
@@ -312,7 +312,7 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
          *   struct already defined).
          * - check service exist for all account cfg.
          */
-        list_for_each_entry(new_actcfg, &(newcfg->accountcfg_list), list)
+        list_for_each_entry(new_actcfg, &(newcfg->account_list), list)
         {
                 /* check the service exist */
                 found = 0;

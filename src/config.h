@@ -21,7 +21,7 @@ struct cfg {
         struct cfgstr cfgfile;
         struct cfgstr pidfile;
         int daemonize;
-        struct list_head accountcfg_list;
+        struct list_head account_list;
 };
 
 struct cfg_account {
