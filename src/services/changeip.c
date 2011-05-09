@@ -80,7 +80,8 @@ static int ddns_write(const struct accountcfg cfg,
 	int n;
 
 	/* make the update packet */
-	snprintf(buf, sizeof(buf), "%s:%s", cfg.username, cfg.passwd);
+	snprintf(buf, sizeof(buf), "%s:%s",
+                 cfgstr_get(&(cfg.username)), cfgstr_get(&(cfg.passwd)));
 
 	if (util_base64_encode(buf, &b64_loginpass, &b64_loginpass_size) != 0)
 	{
@@ -98,7 +99,7 @@ static int ddns_write(const struct accountcfg cfg,
 					"User-Agent: " PACKAGE "/" VERSION "\r\n"
 					"Connection: close\r\n"
 					"Pragma: no-cache\r\n\r\n",
-					cfg.hostname,
+                     cfgstr_get(&(cfg.hostname)),
 					newwanip,
 					b64_loginpass);
 

@@ -53,7 +53,7 @@ static void account_reqhook_readresponse(struct account *account,
         if(report.code == up_success)
         {
                 log_info("update success for account '%s'",
-                         account->cfg->name);
+                         cfgstr_get(&(account->cfg->name)));
 
                 account->status = ASOk;
                 account->updated = 1;
@@ -62,7 +62,7 @@ static void account_reqhook_readresponse(struct account *account,
         else
         {
                 log_notice("update failed for account '%s' (%d: %s - %s)",
-                           account->cfg->name,
+                           cfgstr_get(&(account->cfg->name)),
                            report.code,
                            report.custom_rc,
                            report.custom_rc_text);
@@ -184,8 +184,8 @@ void account_ctl_manage(void)
                 {
                         log_notice("Account '%s' service '%s'"
                                    " need to be updated !",
-                                   account->cfg->name,
-                                   account->cfg->service);
+                                   cfgstr_get(&(account->cfg->name)),
+                                   cfgstr_get(&(account->cfg->service)));
 
                         /* req_host structure */
                         snprintf(req_host.addr, sizeof(req_host.addr),
@@ -252,7 +252,8 @@ int account_ctl_mapcfg(struct cfg *cfg)
                 list_for_each_entry(service,
                                     &(service_list), list)
                 {
-                        if(strcmp(service->name, accountcfg->service) == 0)
+                        if(strcmp(service->name,
+                                  cfgstr_get(&(accountcfg->service))) == 0)
                         {
                                 account = calloc(1,
                                                  sizeof(struct account));
@@ -270,7 +271,7 @@ int account_ctl_mapcfg(struct cfg *cfg)
                 if(!ismapped)
                 {
                         log_error("No service named '%s' available !",
-                                  accountcfg->service);
+                                  cfgstr_get(&(accountcfg->service)));
 
                         list_for_each_entry_safe(account, safe,
                                                  &(account_list), list)
@@ -318,7 +319,8 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
                 list_for_each_entry(service,
                                     &(service_list), list)
                 {
-                        if(strcmp(service->name, new_actcfg->service) == 0)
+                        if(strcmp(service->name,
+                                  cfgstr_get(&(new_actcfg->service))) == 0)
                         {
                                 found = 1;
 
@@ -336,7 +338,7 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
                 {
                         log_error("No service named '%s' available !"
                                   " Abort the new config file.",
-                                  new_actcfg->service);
+                                  cfgstr_get(&(new_actcfg->service)));
                         ret = -1;
                         goto out;
                 }
@@ -355,26 +357,26 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
                 list_for_each_entry_safe(entry_tomap, entry_tomap_safe,
                                          &(entry_tomap_list), list)
                 {
-                        if(strcmp(accountctl->cfg->name,
-                                  entry_tomap->newcfg->name) == 0)
+                        if(strcmp(cfgstr_get(&(accountctl->cfg->name)),
+                                  cfgstr_get(&(entry_tomap->newcfg->name))) == 0)
                         {
                                 /* found reference in new cfg */
                                 found = 1;
 
                                 /* view it cfg has changed */
-                                if(strcmp(entry_tomap->newcfg->service,
-                                          accountctl->cfg->service) != 0
-                                   || strcmp(entry_tomap->newcfg->username,
-                                             accountctl->cfg->username) != 0
-                                   || strcmp(entry_tomap->newcfg->passwd,
-                                             accountctl->cfg->passwd) != 0
-                                   || strcmp(entry_tomap->newcfg->hostname,
-                                             accountctl->cfg->hostname) != 0)
+                                if(strcmp(cfgstr_get(&(entry_tomap->newcfg->service)),
+                                          cfgstr_get(&(accountctl->cfg->service))) != 0
+                                   || strcmp(cfgstr_get(&(entry_tomap->newcfg->username)),
+                                             cfgstr_get(&(accountctl->cfg->username))) != 0
+                                   || strcmp(cfgstr_get(&(entry_tomap->newcfg->passwd)),
+                                             cfgstr_get(&(accountctl->cfg->passwd))) != 0
+                                   || strcmp(cfgstr_get(&(entry_tomap->newcfg->hostname)),
+                                             cfgstr_get(&(accountctl->cfg->hostname))) != 0)
                                 {
                                         /* cfg has changed */
                                         log_debug("account cfg for '%s'"
                                                   " has changed",
-                                                  entry_tomap->newcfg->name);
+                                                  cfgstr_get(&(entry_tomap->newcfg->name)));
 
                                         accountctl->updated = 0;
                                         accountctl->locked = 0;
@@ -394,7 +396,7 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
                 {
                         /* remove reference of account */
                         log_debug("Remove unused account ctl '%s'",
-                                  accountctl->cfg->name);
+                                  cfgstr_get(&(accountctl->cfg->name)));
 
                         /* This old reference must not be used anymore,
                          * this is why we remove all request which can
@@ -411,7 +413,7 @@ int account_ctl_mapnewcfg(const struct cfg *newcfg)
         list_for_each_entry(entry_tomap, &(entry_tomap_list), list)
         {
                 log_debug("New account '%s'",
-                          entry_tomap->newcfg->name);
+                          cfgstr_get(&(entry_tomap->newcfg->name)));
 
                 accountctl = calloc(1, sizeof(struct account));
                 accountctl->cfg = entry_tomap->newcfg;
@@ -431,7 +433,7 @@ struct account *account_ctl_get(const char *accountname)
         list_for_each_entry(account,
                             &(account_list), list)
         {
-                if(strcmp(account->cfg->name, accountname) == 0)
+                if(strcmp(cfgstr_get(&(account->cfg->name)), accountname) == 0)
                 {
                         return account;
                 }

@@ -9,22 +9,23 @@
 TEST_DEF(test_config_parse)
 {
         struct cfg cfg;
-        const char *cfgfn = NULL;
 
         config_init(&cfg);
 
-        cfgfn = "dontexist_conf_file__.conf";
-        TEST_ASSERT(config_parse_file(&cfg, cfgfn) != 0,
-                    "config_parse_file(%s) success with an non existant conf file ?",
-                    cfgfn);
+        cfgstr_set(&cfg.cfgfile, "__dontexist_conf_file__.conf");
+        TEST_ASSERT(config_parse_file(&cfg) != 0,
+                    "config_parse_file(%s) succeeded but we expected failed !",
+                    cfgstr_get(&cfg.cfgfile));
 
-        cfgfn = "yaddns.good.conf";
-        TEST_ASSERT(config_parse_file(&cfg, cfgfn) == 0,
-                    "Failed to config_parse_file(%s)", cfgfn);
+        cfgstr_set(&cfg.cfgfile, "yaddns.good.conf");
+        TEST_ASSERT(config_parse_file(&cfg) == 0,
+                    "config_parse_file(%s) failed !",
+                    cfgstr_get(&cfg.cfgfile));
 
-        cfgfn = "yaddns.invalid.conf";
-        TEST_ASSERT(config_parse_file(&cfg, cfgfn) != 0,
-                    "Success on config_parse_file(%s) !", cfgfn);
+        cfgstr_set(&cfg.cfgfile, "yaddns.invalid.conf");
+        TEST_ASSERT(config_parse_file(&cfg) != 0,
+                    "config_parse_file(%s) succeeded but we expected failed !",
+                    cfgstr_get(&cfg.cfgfile));
 
         config_free(&cfg);
 }

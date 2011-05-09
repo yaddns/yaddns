@@ -102,7 +102,8 @@ static void wanip_manage(const struct cfg *cfg)
         /* get the current system wan ip address */
         if(cfg->wan_cnt_type == wan_cnt_direct)
         {
-                ret = util_getifaddr(cfg->wan_ifname, &fresh_wanip);
+                ret = util_getifaddr(cfgstr_get(&(cfg->wan_ifname)),
+                                     &fresh_wanip);
         }
         else
         {
@@ -136,8 +137,9 @@ static int reload_conf(struct cfg *cfg)
         int ret = -1;
 
         config_init(&cfgre);
+        cfgstr_copy(&(cfg->cfgfile), &(cfgre.cfgfile));
 
-        if(config_parse_file(&cfgre, cfg->cfgfile) != 0)
+        if(config_parse_file(&cfgre) != 0)
         {
                 log_error("The new configuration file is invalid. Fix it.");
                 return -1;
@@ -147,8 +149,8 @@ static int reload_conf(struct cfg *cfg)
         {
                 if(cfgre.wan_cnt_type == wan_cnt_direct)
                 {
-                        if(strcmp(cfgre.wan_ifname,
-                                  cfg->wan_ifname) != 0)
+                        if(strcmp(cfgstr_get(&(cfgre.wan_ifname)),
+                                  cfgstr_get(&(cfg->wan_ifname))) != 0)
                         {
                                 /* if wan ifname change, reupdate all
                                  * accounts
@@ -232,9 +234,9 @@ int main(int argc, char **argv)
         }
 
         /* create pid file ? */
-        if(cfg.pidfile != NULL)
+        if(cfgstr_is_set(&(cfg.pidfile)))
         {
-                if((fpid = fopen(cfg.pidfile, "w")))
+                if((fpid = fopen(cfgstr_get(&(cfg.pidfile)), "w")))
                 {
                         fprintf(fpid, "%u", getpid());
                         fclose(fpid);
@@ -243,7 +245,7 @@ int main(int argc, char **argv)
                 else
                 {
                         log_error("Failed to create pidfile %s: %m",
-                                  cfg.pidfile);
+                                  cfgstr_get(&(cfg.pidfile)));
                         goto exit_clean;
                 }
         }

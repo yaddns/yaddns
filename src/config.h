@@ -2,41 +2,40 @@
 #define _YADDNS_CONFIG_H_
 
 #include "list.h"
-
-enum wan_cnt_type {
-        wan_cnt_direct = 0,
-        wan_cnt_indirect,
-};
+#include "cfgstr.h"
 
 struct cfg_myip {
-        char *host;
+        struct cfgstr host;
         unsigned short int port;
-        char *path;
+        struct cfgstr path;
         int upint;
 };
 
 struct cfg {
-        int wan_cnt_type;
-        char *wan_ifname;
+        enum {
+                wan_cnt_direct = 0,
+                wan_cnt_indirect,
+        } wan_cnt_type;
+        struct cfgstr wan_ifname;
         struct cfg_myip myip;
-        char *cfgfile;
-        char *pidfile;
+        struct cfgstr cfgfile;
+        struct cfgstr pidfile;
         int daemonize;
         struct list_head accountcfg_list;
 };
 
 struct accountcfg {
-        char *name; /* must be unique */
-        char *service;
-	char *username;
-	char *passwd;
-	char *hostname;
+        struct cfgstr name; /* must be unique */
+        struct cfgstr service;
+	struct cfgstr username;
+	struct cfgstr passwd;
+	struct cfgstr hostname;
         struct list_head list;
 };
 
 extern int config_parse(struct cfg *cfg, int argc, char **argv);
 
-extern int config_parse_file(struct cfg *cfg, const char *filename);
+extern int config_parse_file(struct cfg *cfg);
 
 extern void config_init(struct cfg *cfg);
 
