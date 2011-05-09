@@ -2,12 +2,30 @@ AC_PREREQ(2.62)
 AC_INIT(yaddns, 1.0-rc3, avd@patatrac.info)
 AM_INIT_AUTOMAKE([foreign])
 
+# programs needed to build/install
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 
+# libs needed
 AC_SEARCH_LIBS(clock_gettime, rt)
 
+# config options
+AC_ARG_ENABLE(debug,
+        [  --enable-debug  specify you are building with debugging on],
+	enable_debug=yes, enable_debug=no)
+
+# pimp CFLAGS
+CFLAGS="${CFLAGS=}"
+CFLAGS="$CFLAGS -Wall -Wextra -Wfloat-equal -Wundef -Wshadow -Wpointer-arith\
+ -Wstrict-overflow=5 -Wwrite-strings -Waggregate-return -Wformat=2"
+
+if test "x$enable_debug" = "xyes"; then
+   CFLAGS="$CFLAGS -g -DDEBUG"
+   AC_MSG_RESULT(enable debug... yes)
+fi
+
+# the generated files
 AC_CONFIG_FILES([
 Makefile
 src/Makefile

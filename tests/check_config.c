@@ -13,8 +13,8 @@ TEST_DEF(test_config_parse)
 
         config_init(&cfg);
 
-        cfgfn = "yaddns.invalid.conf";
-        TEST_ASSERT(config_parse_file(&cfg, "dontexist_conf_file__.conf") != 0,
+        cfgfn = "dontexist_conf_file__.conf";
+        TEST_ASSERT(config_parse_file(&cfg, cfgfn) != 0,
                     "config_parse_file(%s) success with an non existant conf file ?",
                     cfgfn);
 
