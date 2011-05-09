@@ -38,11 +38,11 @@
 #define DDNS_PORT 80
 
 static int ddns_write(const struct accountcfg cfg,
-						const char const *newwanip,
-						struct request_buff *buff);
+                      const char const *newwanip,
+                      struct request_buff *buff);
 
 static int ddns_read(struct request_buff *buff,
-						struct upreply_report *report);
+                     struct upreply_report *report);
 
 struct service changeip_service = {
 	.name = DDNS_NAME,
@@ -71,8 +71,8 @@ static struct {
 };
 
 static int ddns_write(const struct accountcfg cfg,
-						const char const *newwanip,
-						struct request_buff *buff)
+                      const char const *newwanip,
+                      struct request_buff *buff)
 {
 	char buf[256];
 	char *b64_loginpass = NULL;
@@ -91,17 +91,17 @@ static int ddns_write(const struct accountcfg cfg,
 	}
 
 	n = snprintf(buff->data, sizeof(buff->data),
-					"GET /nic/update?hostname=%s"
-					"&myip=%s"
-					" HTTP/1.0\r\n"
-					"Host: " DDNS_HOST "\r\n"
-					"Authorization: Basic %s\r\n"
-					"User-Agent: " PACKAGE "/" VERSION "\r\n"
-					"Connection: close\r\n"
-					"Pragma: no-cache\r\n\r\n",
+                     "GET /nic/update?hostname=%s"
+                     "&myip=%s"
+                     " HTTP/1.0\r\n"
+                     "Host: " DDNS_HOST "\r\n"
+                     "Authorization: Basic %s\r\n"
+                     "User-Agent: " PACKAGE "/" VERSION "\r\n"
+                     "Connection: close\r\n"
+                     "Pragma: no-cache\r\n\r\n",
                      cfgstr_get(&(cfg.hostname)),
-					newwanip,
-					b64_loginpass);
+                     newwanip,
+                     b64_loginpass);
 
 	buff->data_size = n;
 
@@ -111,7 +111,7 @@ static int ddns_write(const struct accountcfg cfg,
 }
 
 static int ddns_read(struct request_buff *buff,
-						struct upreply_report *report)
+                     struct upreply_report *report)
 {
 	int ret = 0;
 	char *ptr = NULL;
@@ -120,8 +120,8 @@ static int ddns_read(struct request_buff *buff,
 
 	report->code = up_unknown_error;
 
-	if(strstr(buff->data, "HTTP/1.1 200 Successful Update") ||
-		strstr(buff->data, "HTTP/1.0 200 Successful Update"))
+	if(strstr(buff->data, "HTTP/1.1 200 Successful Update")
+           || strstr(buff->data, "HTTP/1.0 200 Successful Update"))
 	{
 		(void) strtok(buff->data, "\n");
 		while (!f && (ptr = strtok(NULL, "\n")) != NULL)

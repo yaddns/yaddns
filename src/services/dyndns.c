@@ -178,18 +178,18 @@ static int ddns_write(const struct accountcfg cfg,
 	}
 
 	n = snprintf(buff->data, sizeof(buff->data),
-					"GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
-					"&myip=%s"
-					"&backmx=NO&offline=NO"
-					" HTTP/1.0\r\n"
-					"Host: " DDNS_HOST "\r\n"
-					"Authorization: Basic %s\r\n"
-					"User-Agent: " PACKAGE "/" VERSION "\r\n"
-					"Connection: close\r\n"
-					"Pragma: no-cache\r\n\r\n",
+                     "GET /nic/update?system=dyndns&hostname=%s&wildcard=OFF"
+                     "&myip=%s"
+                     "&backmx=NO&offline=NO"
+                     " HTTP/1.0\r\n"
+                     "Host: " DDNS_HOST "\r\n"
+                     "Authorization: Basic %s\r\n"
+                     "User-Agent: " PACKAGE "/" VERSION "\r\n"
+                     "Connection: close\r\n"
+                     "Pragma: no-cache\r\n\r\n",
                      cfgstr_get(&(cfg.hostname)),
-					newwanip,
-					b64_loginpass);
+                     newwanip,
+                     b64_loginpass);
 
 	buff->data_size = n;
 
@@ -208,8 +208,8 @@ static int ddns_read(struct request_buff *buff,
 
 	report->code = up_unknown_error;
 
-	if(strstr(buff->data, "HTTP/1.1 200 OK") ||
-		strstr(buff->data, "HTTP/1.0 200 OK"))
+	if(strstr(buff->data, "HTTP/1.1 200 OK")
+           || strstr(buff->data, "HTTP/1.0 200 OK"))
 	{
 		(void) strtok(buff->data, "\n");
 		while (!f && (ptr = strtok(NULL, "\n")) != NULL)
@@ -221,14 +221,14 @@ static int ddns_read(struct request_buff *buff,
 					report->code = rc_map[n].unified_rc;
 
 					snprintf(report->custom_rc,
-								sizeof(report->custom_rc),
-								"%s",
-								rc_map[n].code);
+                                                 sizeof(report->custom_rc),
+                                                 "%s",
+                                                 rc_map[n].code);
 
 					snprintf(report->custom_rc_text,
-								sizeof(report->custom_rc_text),
-								"%s",
-								rc_map[n].text);
+                                                 sizeof(report->custom_rc_text),
+                                                 "%s",
+                                                 rc_map[n].text);
 
 					report->rcmd_lock = rc_map[n].lock;
 					report->rcmd_freeze = rc_map[n].freeze;
