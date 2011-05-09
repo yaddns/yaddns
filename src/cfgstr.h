@@ -67,6 +67,8 @@ static inline void cfgstr_copy(const struct cfgstr *cfgstrsrc,
 static inline void cfgstr_move(struct cfgstr *cfgstrsrc,
                                struct cfgstr *cfgstrdst)
 {
+        cfgstr_unset(cfgstrdst);
+
         cfgstrdst->s = cfgstrsrc->s;
         cfgstrdst->v.chs = cfgstrsrc->v.chs;
 
