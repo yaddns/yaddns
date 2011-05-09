@@ -129,9 +129,9 @@ static int ddns_write(const struct accountcfg cfg,
 					"User-Agent: " PACKAGE "/" VERSION "\r\n"
 					"Connection: close\r\n"
 					"Pragma: no-cache\r\n\r\n",
-					cfg.hostname,
-					cfg.username,
-					cfg.passwd,
+                     cfgstr_get(&(cfg.hostname)),
+                     cfgstr_get(&(cfg.username)),
+                     cfgstr_get(&(cfg.passwd)),
 					newwanip);
 
 	buff->data_size = n;

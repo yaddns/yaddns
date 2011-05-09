@@ -194,9 +194,9 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
         if(myip_ctl.status == MISNeedUpdate)
         {
                 /* send a request */
-                if(myip_sendrequest(cfg_myip->host,
+                if(myip_sendrequest(cfgstr_get(&(cfg_myip->host)),
                                     cfg_myip->port,
-                                    cfg_myip->path) == 0)
+                                    cfgstr_get(&(cfg_myip->path))) == 0)
                 {
                         myip_ctl.status = MISWorking;
                         memcpy(&myip_ctl.timelastrequest,

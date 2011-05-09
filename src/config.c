@@ -12,31 +12,7 @@
 #include "util.h"
 
 #define CFG_DEFAULT_FILENAME "/etc/yaddns.conf"
-
 #define CFG_DEFAULT_WANIFNAME "ppp0"
-
-/* #define CFG_DEFAULT_MYIP_HOST "checkip.dyndns.org" */
-/* #define CFG_DEFAULT_MYIP_PORT 80 */
-/* #define CFG_DEFAULT_MYIP_PATH "/" */
-/* #define CFG_DEFAULT_MYIP_UPINT 60 */
-
-#define CFG_FREE_STR(itname) do {                                       \
-                if(itname != NULL)                                      \
-                {                                                       \
-                        free(itname);                                   \
-                        itname = NULL;                                  \
-                }                                                       \
-        } while(0)
-
-#define CFG_SET_STR(itname, value) do {                                 \
-                CFG_FREE_STR(itname);                                   \
-                itname = strdup(value);                                 \
-        } while(0)
-
-#define CFG_SET_ALLOCATED_STR(itname, value) do {                       \
-                CFG_FREE_STR(itname);                                   \
-                itname = value;                                         \
-        } while(0)
 
 /*
  * spaces = space, \f, \n, \r, \t and \v
@@ -192,11 +168,6 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 {0, 0, 0, 0 }
         };
 
-        /* void cfg variables which can be set in cmd line */
-        cfg->cfgfile = NULL;
-        cfg->pidfile = NULL;
-        cfg->daemonize = 0;
-
         while((c = getopt_long (argc, argv,
                                 short_options, long_options, &ind)) != EOF)
         {
@@ -235,11 +206,11 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         break;
 
                 case 'p':
-                        cfg->pidfile = strdup(optarg);
+                        cfgstr_dup(&(cfg->pidfile), optarg);
                         break;
 
                 case 'f':
-                        cfg->cfgfile = strdup(optarg);
+                        cfgstr_dup(&(cfg->cfgfile), optarg);
                         cfgfile_flag = 1;
                         break;
 
@@ -248,14 +219,15 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 }
         }
 
-        if(cfg->cfgfile == NULL)
+        if(!cfgstr_is_set(&(cfg->cfgfile)))
         {
-                cfg->cfgfile = strdup(CFG_DEFAULT_FILENAME);
+                cfgstr_set(&(cfg->cfgfile), CFG_DEFAULT_FILENAME);
         }
 
-        if(config_parse_file(cfg, cfg->cfgfile) != 0)
+        if(config_parse_file(cfg) != 0)
         {
-                if(access(cfg->cfgfile, F_OK) == 0 || cfgfile_flag)
+                if(access(cfgstr_get(&(cfg->cfgfile)), F_OK) == 0
+                   || cfgfile_flag)
                 {
                         config_free(cfg);
                         return -1;
@@ -271,7 +243,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
 	return 0;
 }
 
-int config_parse_file(struct cfg *cfg, const char *filename)
+int config_parse_file(struct cfg *cfg)
 {
 	FILE *file = NULL;
         int ret = 0;
@@ -283,16 +255,15 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         struct accountcfg *accountcfg = NULL,
                 *safe_accountcfg = NULL;
         int myip_assign_count = 0;
+        const char *filename = NULL;
 
+        if(!cfgstr_is_set(&(cfg->cfgfile)))
+        {
+                log_error("No config filename is set");
+                return -1;
+        }
 
-        /* void cfg variables which can be set in cfg file */
-        cfg->wan_cnt_type = wan_cnt_direct;
-        cfg->wan_ifname = NULL;
-        cfg->myip.host = NULL;
-        cfg->myip.port = 0;
-        cfg->myip.path = NULL;
-        cfg->myip.upint = 0;
-
+        filename = cfgstr_get(&(cfg->cfgfile));
         log_debug("Trying to parse '%s' config file", filename);
 
         if((file = fopen(filename, "r")) == NULL)
@@ -315,24 +286,24 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                                 accountdef_scope = 0;
 
                                 /* check and insert */
-                                if(accountcfg->name == NULL
-                                   || accountcfg->service == NULL
-                                   || accountcfg->username == NULL
-                                   || accountcfg->passwd == NULL
-                                   || accountcfg->hostname == NULL)
+                                if(!cfgstr_is_set(&(accountcfg->name))
+                                   || !cfgstr_is_set(&(accountcfg->service))
+                                   || !cfgstr_is_set(&(accountcfg->username))
+                                   || !cfgstr_is_set(&(accountcfg->passwd))
+                                   || !cfgstr_is_set(&(accountcfg->hostname)))
                                 {
                                         log_error("Missing value(s) for "
                                                   "account name '%s' service '%s'"
                                                   "(file %s - line %d)",
-                                                  accountcfg->name,
-                                                  accountcfg->service,
+                                                  cfgstr_get(&(accountcfg->name)),
+                                                  cfgstr_get(&(accountcfg->service)),
                                                   filename, linenum);
 
-                                        CFG_FREE_STR(accountcfg->name);
-                                        CFG_FREE_STR(accountcfg->service);
-                                        CFG_FREE_STR(accountcfg->username);
-                                        CFG_FREE_STR(accountcfg->passwd);
-                                        CFG_FREE_STR(accountcfg->hostname);
+                                        cfgstr_unset(&(accountcfg->name));
+                                        cfgstr_unset(&(accountcfg->service));
+                                        cfgstr_unset(&(accountcfg->username));
+                                        cfgstr_unset(&(accountcfg->passwd));
+                                        cfgstr_unset(&(accountcfg->hostname));
                                         free(accountcfg);
 
                                         ret = -1;
@@ -344,29 +315,30 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                         }
                         else if(strcmp(name, "name") == 0)
                         {
-                                CFG_SET_STR(accountcfg->name, value);
+                                cfgstr_dup(&(accountcfg->name), value);
                         }
                         else if(strcmp(name, "service") == 0)
                         {
-                                CFG_SET_STR(accountcfg->service, value);
+                                cfgstr_dup(&(accountcfg->service), value);
                         }
                         else if(strcmp(name, "username") == 0)
                         {
-                                CFG_SET_STR(accountcfg->username, value);
+                                cfgstr_dup(&(accountcfg->username), value);
                         }
                         else if(strcmp(name, "password") == 0)
                         {
-                                CFG_SET_STR(accountcfg->passwd, value);
+                                cfgstr_dup(&(accountcfg->passwd), value);
                         }
                         else if(strcmp(name, "hostname") == 0)
                         {
-                                CFG_SET_STR(accountcfg->hostname, value);
+                                cfgstr_dup(&(accountcfg->hostname), value);
                         }
                         else
                         {
                                 log_error("Invalid option name '%s' for "
-                                          "an account (file %s line %d)",
-                                          name, filename, linenum);
+                                          "account name '%s' (file %s line %d)",
+                                          name, cfgstr_get(&(accountcfg->name)),
+                                          filename, linenum);
 
                                 ret = -1;
                                 break;
@@ -380,7 +352,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 }
                 else if(strcmp(name, "wanifname") == 0)
                 {
-                        CFG_SET_STR(cfg->wan_ifname, value);
+                        cfgstr_dup(&(cfg->wan_ifname), value);
                 }
                 else if(strcmp(name, "mode") == 0)
                 {
@@ -395,7 +367,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 }
                 else if(strcmp(name, "myip_host") == 0)
                 {
-                        CFG_SET_STR(cfg->myip.host, value);
+                        cfgstr_dup(&(cfg->myip.host), value);
                         ++myip_assign_count;
                 }
                 else if(strcmp(name, "myip_port") == 0)
@@ -413,7 +385,7 @@ int config_parse_file(struct cfg *cfg, const char *filename)
                 }
                 else if(strcmp(name, "myip_path") == 0)
                 {
-                        CFG_SET_STR(cfg->myip.path, value);
+                        cfgstr_dup(&(cfg->myip.path), value);
                         ++myip_assign_count;
                 }
                 else if(strcmp(name, "myip_upint") == 0)
@@ -447,20 +419,21 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         }
 
         if(cfg->wan_cnt_type == wan_cnt_direct
-           && cfg->wan_ifname == NULL)
+           && !cfgstr_is_set(&(cfg->wan_ifname)))
         {
                 log_warning("wan ifname isn't defined. Use ppp0 by default");
-                cfg->wan_ifname = strdup(CFG_DEFAULT_WANIFNAME);
+                cfgstr_set(&(cfg->wan_ifname), CFG_DEFAULT_WANIFNAME);
         }
 
         if(cfg->wan_cnt_type == wan_cnt_indirect)
         {
-                if(cfg->myip.host == NULL
+                if(!cfgstr_is_set(&(cfg->myip.host))
                    || cfg->myip.port == 0
-                   || cfg->myip.path == NULL
+                   || !cfgstr_is_set(&(cfg->myip.path))
                    || cfg->myip.upint == 0)
                 {
-                        log_error("Miss myip definition(s). Check config file");
+                        log_error("Invalid myip definition(s)."
+                                  " Check config file.");
                         ret = -1;
                 }
         }
@@ -469,7 +442,8 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         {
                 log_error("No found closure for account name '%s' service '%s' "
                           "(file %s line %d)",
-                          accountcfg->name, accountcfg->service,
+                          cfgstr_get(&(accountcfg->name)),
+                          cfgstr_get(&(accountcfg->service)),
                           filename, linenum);
                 ret = -1;
         }
@@ -477,18 +451,18 @@ int config_parse_file(struct cfg *cfg, const char *filename)
         if(ret == -1)
         {
                 /* error. need to cleanup */
-                CFG_FREE_STR(cfg->wan_ifname);
-                CFG_FREE_STR(cfg->myip.host);
-                CFG_FREE_STR(cfg->myip.path);
+                cfgstr_unset(&(cfg->wan_ifname));
+                cfgstr_unset(&(cfg->myip.host));
+                cfgstr_unset(&(cfg->myip.path));
 
                 list_for_each_entry_safe(accountcfg, safe_accountcfg,
                                          &(cfg->accountcfg_list), list)
                 {
-                        CFG_FREE_STR(accountcfg->name);
-                        CFG_FREE_STR(accountcfg->service);
-                        CFG_FREE_STR(accountcfg->username);
-                        CFG_FREE_STR(accountcfg->passwd);
-                        CFG_FREE_STR(accountcfg->hostname);
+                        cfgstr_unset(&(accountcfg->name));
+                        cfgstr_unset(&(accountcfg->service));
+                        cfgstr_unset(&(accountcfg->username));
+                        cfgstr_unset(&(accountcfg->passwd));
+                        cfgstr_unset(&(accountcfg->hostname));
 
                         list_del(&(accountcfg->list));
                         free(accountcfg);
@@ -501,14 +475,14 @@ int config_parse_file(struct cfg *cfg, const char *filename)
 	return ret;
 }
 
-struct accountcfg * config_account_get(const struct cfg *cfg, const char *name)
+struct accountcfg *config_account_get(const struct cfg *cfg, const char *name)
 {
         struct accountcfg *accountcfg = NULL;
 
         list_for_each_entry(accountcfg,
                             &(cfg->accountcfg_list), list)
         {
-                if(strcmp(accountcfg->name, name) == 0)
+                if(strcmp(cfgstr_get(&(accountcfg->name)), name) == 0)
                 {
                         return accountcfg;
                 }
@@ -520,6 +494,7 @@ struct accountcfg * config_account_get(const struct cfg *cfg, const char *name)
 void config_init(struct cfg *cfg)
 {
         memset(cfg, 0, sizeof(struct cfg));
+
         INIT_LIST_HEAD( &(cfg->accountcfg_list) );
 }
 
@@ -528,20 +503,20 @@ int config_free(struct cfg *cfg)
         struct accountcfg *accountcfg = NULL,
                 *safe = NULL;
 
-        CFG_FREE_STR(cfg->wan_ifname);
-        CFG_FREE_STR(cfg->myip.host);
-        CFG_FREE_STR(cfg->myip.path);
-        CFG_FREE_STR(cfg->cfgfile);
-        CFG_FREE_STR(cfg->pidfile);
+        cfgstr_unset(&(cfg->wan_ifname));
+        cfgstr_unset(&(cfg->myip.host));
+        cfgstr_unset(&(cfg->myip.path));
+        cfgstr_unset(&(cfg->cfgfile));
+        cfgstr_unset(&(cfg->pidfile));
 
         list_for_each_entry_safe(accountcfg, safe,
                                  &(cfg->accountcfg_list), list)
         {
-                CFG_FREE_STR(accountcfg->name);
-                CFG_FREE_STR(accountcfg->service);
-                CFG_FREE_STR(accountcfg->username);
-                CFG_FREE_STR(accountcfg->passwd);
-                CFG_FREE_STR(accountcfg->hostname);
+                cfgstr_unset(&(accountcfg->name));
+                cfgstr_unset(&(accountcfg->service));
+                cfgstr_unset(&(accountcfg->username));
+                cfgstr_unset(&(accountcfg->passwd));
+                cfgstr_unset(&(accountcfg->hostname));
 
                 list_del(&(accountcfg->list));
                 free(accountcfg);
@@ -555,20 +530,25 @@ void config_print(struct cfg *cfg)
         struct accountcfg *accountcfg = NULL;
 
         printf("Configuration:\n");
-        printf(" cfg file = '%s'\n", cfg->cfgfile);
-        printf(" pid file = '%s'\n", cfg->pidfile);
+        printf(" cfg file = '%s'\n", cfgstr_get(&(cfg->cfgfile)));
+        printf(" pid file = '%s'\n", cfgstr_get(&(cfg->pidfile)));
         printf(" daemonize = '%d'\n", cfg->daemonize);
-        printf(" wan ifname = '%s'\n", cfg->wan_ifname);
+        printf(" wan ifname = '%s'\n", cfgstr_get(&(cfg->wan_ifname)));
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
 
         list_for_each_entry(accountcfg,
                             &(cfg->accountcfg_list), list)
         {
-                printf(" ---- account name '%s' ----\n", accountcfg->name);
-                printf("   service = '%s'\n", accountcfg->service);
-                printf("   username = '%s'\n", accountcfg->username);
-                printf("   password = '%s'\n", accountcfg->passwd);
-                printf("   hostname = '%s'\n", accountcfg->hostname);
+                printf(" ---- account name '%s' ----\n",
+                       cfgstr_get(&(accountcfg->name)));
+                printf("   service = '%s'\n",
+                       cfgstr_get(&(accountcfg->service)));
+                printf("   username = '%s'\n",
+                       cfgstr_get(&(accountcfg->username)));
+                printf("   password = '%s'\n",
+                       cfgstr_get(&(accountcfg->passwd)));
+                printf("   hostname = '%s'\n",
+                       cfgstr_get(&(accountcfg->hostname)));
         }
 }
 
@@ -579,14 +559,14 @@ void config_move(struct cfg *cfgsrc, struct cfg *cfgdst)
 
         /* general cfg */
         cfgdst->wan_cnt_type = cfgsrc->wan_cnt_type;
-        CFG_SET_ALLOCATED_STR(cfgdst->wan_ifname, cfgsrc->wan_ifname);
-        CFG_SET_ALLOCATED_STR(cfgdst->cfgfile, cfgsrc->cfgfile);
-        CFG_SET_ALLOCATED_STR(cfgdst->pidfile, cfgsrc->pidfile);
+        cfgstr_move(&(cfgsrc->wan_ifname), &(cfgdst->wan_ifname));
+        cfgstr_move(&(cfgsrc->cfgfile), &(cfgdst->cfgfile));
+        cfgstr_move(&(cfgsrc->pidfile), &(cfgdst->pidfile));
         cfgdst->daemonize = cfgsrc->daemonize;
 
         /* myip cfg */
-        CFG_SET_ALLOCATED_STR(cfgdst->myip.host, cfgsrc->myip.host);
-        CFG_SET_ALLOCATED_STR(cfgdst->myip.path, cfgsrc->myip.path);
+        cfgstr_move(&(cfgsrc->myip.host), &(cfgdst->myip.host));
+        cfgstr_move(&(cfgsrc->myip.path), &(cfgdst->myip.path));
         cfgdst->myip.port = cfgsrc->myip.port;
         cfgdst->myip.upint = cfgsrc->myip.upint;
 

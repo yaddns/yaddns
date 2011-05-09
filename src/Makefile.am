@@ -9,6 +9,6 @@ yaddns_SOURCES = yaddns.c yaddns.h \
 	log.c log.h \
 	util.c util.h \
 	myip.c myip.h \
-	list.h \
+	list.h cfgstr.h \
 	services.c services.h service.h
 yaddns_LDADD = services/libservices.a
