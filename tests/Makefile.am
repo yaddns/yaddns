@@ -1,6 +1,6 @@
-TESTS = check_request check_config check_account
+TESTS = check_request check_cfgstr check_config check_account
 
-check_PROGRAMS = check_request check_config check_account
+check_PROGRAMS = $(TESTS)
 
 YADDNS_OBJS = $(top_builddir)/src/request.o \
 		$(top_builddir)/src/services.o \
@@ -12,6 +12,9 @@ YADDNS_OBJS = $(top_builddir)/src/request.o \
 
 check_request_SOURCES = check_request.c $(top_builddir)/src/request.h
 check_request_LDADD = $(YADDNS_OBJS)
+
+check_cfgstr_SOURCES = check_cfgstr.c $(top_builddir)/src/cfgstr.h
+check_cfgstr_LDADD = $(YADDNS_OBJS)
 
 check_config_SOURCES = check_config.c $(top_builddir)/src/config.h
 check_config_LDADD = $(YADDNS_OBJS)
