@@ -22,12 +22,12 @@ static struct myip_ctl {
                 MISWorking,
         } status;
         struct in_addr wanaddr;
-        struct timeval timelastrequest;
+        struct timeval timelasterror;
         struct timeval timelastok;
 } myip_ctl = {
         .status = MISNeedUpdate,
         .wanaddr = {0},
-        .timelastrequest = {0, 0},
+        .timelasterror = {0, 0},
         .timelastok = {0, 0},
 };
 
@@ -53,6 +53,8 @@ static void myip_reqhook_recv(struct request_buff *buff)
                 log_error("HTTP code different to 200 in myip response");
                 log_debug("PACKET: %s", data);
                 myip_ctl.status = MISError;
+                memcpy(&myip_ctl.timelasterror,
+                       &timeofday, sizeof(struct timeval));
                 return;
         }
 
@@ -84,6 +86,8 @@ static void myip_reqhook_recv(struct request_buff *buff)
                 log_error("No found wan ip address in myip response");
                 log_debug("PACKET: %s", data);
                 myip_ctl.status = MISError;
+                memcpy(&myip_ctl.timelasterror,
+                       &timeofday, sizeof(struct timeval));
                 return;
         }
 
@@ -93,6 +97,8 @@ static void myip_reqhook_recv(struct request_buff *buff)
         {
                 log_error("inet_aton(%s) failed: %m", ip);
                 myip_ctl.status = MISError;
+                memcpy(&myip_ctl.timelasterror,
+                       &timeofday, sizeof(struct timeval));
                 return;
         }
 
@@ -109,7 +115,19 @@ static void myip_reqhook_error(struct request *request)
                   request->errcode);
 
         /* update myip_ctl structure */
-        myip_ctl.status = MISError;
+        if(request->errcode == REQ_ERR_CONNECT_TIMEOUT
+           || request->errcode == REQ_ERR_RESPONSE_TIMEOUT
+           || request->errcode == REQ_ERR_SENDING_TIMEOUT)
+        {
+                /* try again */
+                myip_ctl.status = MISNeedUpdate;
+        }
+        else
+        {
+                myip_ctl.status = MISError;
+                memcpy(&myip_ctl.timelasterror,
+                       &timeofday, sizeof(struct timeval));
+        }
 }
 
 static void myip_reqhook(struct request *request, void *data)
@@ -184,7 +202,7 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
             && (timeofday.tv_sec - myip_ctl.timelastok.tv_sec
                 >= cfg_myip->upint))
            || (myip_ctl.status == MISError
-               && (timeofday.tv_sec - myip_ctl.timelastrequest.tv_sec
+               && (timeofday.tv_sec - myip_ctl.timelasterror.tv_sec
                    >= MYIP_SLEEPTIME_ON_ERROR)))
         {
                 /* timeout, need update */
@@ -199,12 +217,12 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
                                     cfgstr_get(&(cfg_myip->path))) == 0)
                 {
                         myip_ctl.status = MISWorking;
-                        memcpy(&myip_ctl.timelastrequest,
-                               &timeofday, sizeof(struct timeval));
                 }
                 else
                 {
                         myip_ctl.status = MISError;
+                        memcpy(&myip_ctl.timelasterror,
+                               &timeofday, sizeof(struct timeval));
                 }
         }
 

@@ -131,6 +131,14 @@ static void wanip_manage(const struct cfg *cfg)
         }
 }
 
+static void wanip_needupdate(const struct cfg *cfg)
+{
+        if(cfg->wan_cnt_type == wan_cnt_indirect)
+        {
+                myip_needupdate();
+        }
+}
+
 static int reload_conf(struct cfg *cfg)
 {
         struct cfg cfgre;
@@ -270,16 +278,6 @@ int main(int argc, char **argv)
                 /* get current time */
                 util_getuptime(&timeofday);
 
-                /* reload config ? */
-                if(reloadconf)
-                {
-                        log_debug("reload configuration");
-
-                        reload_conf(&cfg);
-
-                        reloadconf = 0;
-                }
-
                 /* manage wan ip address */
                 wanip_manage(&cfg);
 
@@ -304,11 +302,20 @@ int main(int argc, char **argv)
 
                         if(reloadconf)
                         {
+                                log_debug("reload configuration");
+
+                                reload_conf(&cfg);
+
+                                reloadconf = 0;
                                 continue;
                         }
 
                         if(wakeup)
                         {
+                                log_debug("force get current wan ip address");
+
+                                wanip_needupdate(&cfg);
+
                                 wakeup = 0;
                                 continue;
                         }

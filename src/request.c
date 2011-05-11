@@ -15,6 +15,10 @@
 
 #include "request.h"
 #include "log.h"
+#include "util.h"
+
+/* extern variables */
+extern struct timeval timeofday;
 
 /* decs public variables */
 struct list_head request_list;
@@ -42,6 +46,9 @@ static int request_open_socket(struct request *request)
                 goto exit_error;
         }
 
+        log_debug("&request: %p, open socket %d",
+                  request, request->s);
+
         if((flags = fcntl(request->s, F_GETFL, 0)) < 0)
         {
 		log_error("fcntl(..F_GETFL..): %m");
@@ -62,7 +69,8 @@ static int request_open_socket(struct request *request)
                 sockname.sin_family = AF_INET;
                 sockname.sin_addr.s_addr = request->opt.bind_addr.s_addr;
 
-                log_debug("bind to %s", inet_ntoa(sockname.sin_addr));
+                log_debug("&request: %p, bind to %s",
+                          request, inet_ntoa(sockname.sin_addr));
 
                 if(bind(request->s,
                         (struct sockaddr *)&sockname,
@@ -91,7 +99,6 @@ static void request_connect(struct request *request)
         struct addrinfo *res = NULL, *rp = NULL;
         int e;
         char serv[6];
-        int connected = 0;
         int ret;
 
         snprintf(serv, sizeof(serv),
@@ -112,19 +119,19 @@ static void request_connect(struct request *request)
                           request->host.port,
                           gai_strerror(e));
                 request->state = FSError;
+                request->errcode = REQ_ERR_SYSTEM;
                 return;
         }
 
-        log_debug("connecting to %s:%u",
+        log_debug("&request:%p, connecting to %s:%u",
+                  request,
                   request->host.addr,
                   request->host.port);
 
-        request->state = FSConnecting;
-
-        connected = 0;
         for (rp = res; rp != NULL; rp = rp->ai_next)
         {
-                log_debug("try to connect to %s:%u ...",
+                log_debug("&request:%p, try to connect to %s:%u ...",
+                          request,
                           inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
                           ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port));
 
@@ -132,19 +139,20 @@ static void request_connect(struct request *request)
                               rp->ai_addr, rp->ai_addrlen);
                 if(ret == 0)
                 {
-                        connected = 1;
+                        request->state = FSConnected;
                         break;
                 }
                 else if(ret < 0)
                 {
-                        log_notice("connect(): %m.");
+                        log_notice("connect(%s:%u): %m.",
+                                   inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
+                                   ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port));
 
                         if(errno == EINPROGRESS)
                         {
-                                /* guess the connection will be successful
-                                 * (view man connect for more information)
-                                 */
-                                connected = 1;
+                                request->state = FSConnecting;
+                                request->last_pending_action.tv_sec =
+                                        timeofday.tv_sec;
                                 break;
                         }
                 }
@@ -152,41 +160,69 @@ static void request_connect(struct request *request)
 
         freeaddrinfo(res);
 
-        if(!connected)
+        if(request->state != FSConnecting && request->state != FSConnected)
         {
                 log_error("Unable to connect !");
                 request->state = FSError;
+                request->errcode = REQ_ERR_CONNECT_FAILED;
         }
 }
 
 static void request_process(struct request *request)
 {
+        int err;
+        socklen_t errsize = sizeof(int);
+
         switch(request->state)
         {
 	case FSConnecting:
-	case FSSending:
-                log_debug("&request:%p - state:%d - socket:%d"
-                          " match 'FSConnecting or FSSending'",
-                          request, request->state, request->s);
+                log_debug("&request:%p, FSConnecting - check connect status",
+                          request);
 
-		request_process_send(request);
-                if(request->state != FSFinished)
+                if(getsockopt(request->s, SOL_SOCKET,
+                              SO_ERROR, &err, &errsize) != 0)
                 {
-                        log_debug("&request:%p - state:%d - "
-                                  "socket:%d (request->state != FSFinished)",
-                                  request, request->state, request->s);
+                        log_error("getsockopt(%d, SO_ERROR) failed: %m",
+                                  request->s);
+                        request->state = FSError;
+                        request->errcode = REQ_ERR_SYSTEM;
                         break;
                 }
+
+                if(err != 0)
+                {
+                        log_error("connect(): %s", strerror(err));
+                        request->state = FSError;
+                        request->errcode = REQ_ERR_CONNECT_FAILED;
+                        break;
+                }
+
+                /* yes, we are connected ! */
+                log_debug("&request:%p, connected !", request);
+                request->state = FSConnected;
+                /* fall down */
+        case FSConnected:
+	case FSSending:
+                log_debug("&request:%p, FSConnected or FSSending"
+                          " - perform send",
+                          request);
+		request_process_send(request);
+                break;
 	case FSFinished:
-                log_debug("FSFinished. close socket.");
+                log_debug("&request:%p, FSFinished - close socket.",
+                          request);
 		close(request->s);
 		request->s = -1;
 		break;
 	case FSWaitingResponse:
+                log_debug("&request:%p, FSWaitingResponse"
+                          " - perform recv",
+                          request);
 		request_process_recv(request);
 		break;
 	default:
 		log_error("Unknown state");
+                break;
 	}
 }
 
@@ -195,7 +231,8 @@ static void request_process_send(struct request *request)
         ssize_t i;
         ssize_t remain = request->buff.data_size - request->buff.data_ack;
 
-        log_debug("send on %d: %.*s",
+        log_debug("&request:%p, send on %d: %.*s",
+                  request,
                   request->s,
                   remain,
                   request->buff.data + request->buff.data_ack);
@@ -208,6 +245,7 @@ static void request_process_send(struct request *request)
         {
                 log_error("send(): %d %m", errno);
                 request->state = FSError;
+                request->errcode = REQ_ERR_SYSTEM;
                 return;
         }
         else if(i != remain)
@@ -216,12 +254,18 @@ static void request_process_send(struct request *request)
                            i, remain);
         }
 
-        log_debug("sent %d bytes", i);
+        log_debug("&request:%p, sent %d bytes", request, i);
 
         request->buff.data_ack += i;
         if(request->buff.data_ack == request->buff.data_size)
         {
                 request->state = FSWaitingResponse;
+                request->last_pending_action.tv_sec = timeofday.tv_sec;
+        }
+        else
+        {
+                request->state = FSSending;
+                request->last_pending_action.tv_sec = timeofday.tv_sec;
         }
 
         return;
@@ -240,18 +284,19 @@ static void request_process_recv(struct request *request)
                 log_error("Error when reading socket %d: %m",
                           request->s);
                 request->state = FSError;
+                request->errcode = REQ_ERR_SYSTEM;
+                return;
         }
-        else
-        {
-                /* put the \0 at end */
-                request->buff.data[n] = '\0';
-                log_debug("Recv %u bytes: %s", n, request->buff.data);
 
-                request->buff.data_size = n;
-                request->buff.data_ack = n;
+        /* put the \0 at end */
+        request->buff.data[n] = '\0';
+        log_debug("&request:%p, recv %u bytes: %s",
+                  request, n, request->buff.data);
 
-                request->state = FSResponseReceived;
-        }
+        request->buff.data_size = n;
+        request->buff.data_ack = n;
+
+        request->state = FSResponseReceived;
 
         /* call hook func */
         request->ctl.hook_func(request, request->ctl.hook_data);
@@ -334,45 +379,47 @@ void request_ctl_selectfds(fd_set *readset, fd_set *writeset, int *max_fd)
 {
         struct request *request = NULL;
 
+        log_debug("--------------------- selectfds ---------------------");
+
         list_for_each_entry(request,
                             &(request_list), list)
         {
-                log_debug("---------------------------");
-                log_debug("selectfds(): &request:%p - state:%d - socket:%d",
-                          request, request->state, request->s);
-                if(request->s >= 0)
+                switch(request->state)
                 {
-			switch(request->state)
+                case FSCreated:
+                        log_debug("&request:%p, FSCreated"
+                                  " - execute connect",
+                                  request);
+
+                        request_connect(request);
+
+                        if(request->state != FSConnecting
+                           && request->state != FSConnected)
                         {
-			case FSCreated:
-                                log_debug("FSCreated, try to connect");
-                                request_connect(request);
-				if(request->state != FSConnecting)
-                                {
-					break;
-                                }
-			case FSConnecting:
-			case FSSending:
-                                log_debug("FSConnecting|FSSending, writeset");
-                                FD_SET(request->s, writeset);
-                                if(request->s > *max_fd)
-                                {
-                                        *max_fd = request->s;
-                                }
-
-				break;
-			case FSWaitingResponse:
-                                log_debug("FSWaitingForResponse, readset");
-				FD_SET(request->s, readset);
-                                if(request->s > *max_fd)
-                                {
-                                        *max_fd = request->s;
-                                }
-
-                                break;
-                        default:
                                 break;
                         }
+                case FSConnecting:
+                case FSConnected:
+                case FSSending:
+                        log_debug("&request:%p, FSConnect(ing|ed)|FSSending"
+                                  " - FD_SET(%d, writeset)",
+                                  request, request->s);
+
+                        FD_SET(request->s, writeset);
+                        *max_fd = MAX(request->s, *max_fd);
+
+                        break;
+                case FSWaitingResponse:
+                        log_debug("&request:%p, FSWaitingForResponse"
+                                  " - FD_SET(%d, readset)",
+                                  request, request->s);
+
+                        FD_SET(request->s, readset);
+                        *max_fd = MAX(request->s, *max_fd);
+
+                        break;
+                default:
+                        break;
                 }
         }
 }
@@ -382,41 +429,63 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
         struct request *request = NULL,
                 *safe = NULL;
 
-        list_for_each_entry(request,
-                            &request_list, list)
-        {
-                if(request->s >= 0
-                   && (FD_ISSET(request->s, readset)
-                       || FD_ISSET(request->s, writeset)))
-                {
-                        log_debug("---------------------------");
-                        log_debug("&request:%p - state:%d - socket:%d",
-                                  request, request->state, request->s);
-                        request_process(request);
-                }
-        }
+        log_debug("--------------------- processfds ---------------------");
 
-        /* remove finished or error pkt */
         list_for_each_entry_safe(request, safe,
                                  &request_list, list)
         {
+                /* process request with fd marked*/
+                if(FD_ISSET(request->s, readset)
+                   || FD_ISSET(request->s, writeset))
+                {
+                        log_debug("&request:%p, FD_ISSET(%d) == 1",
+                                  request, request->s);
+
+                        request_process(request);
+                }
+
+                /* remove finished, error or timeout request */
+                if((request->state == FSConnecting
+                    || request->state == FSWaitingResponse
+                    || request->state == FSSending)
+                   && (timeofday.tv_sec - request->last_pending_action.tv_sec
+                       >= REQUEST_PENDING_ACTION_TIMEOUT))
+                {
+                        log_notice("Pending request on %s:%d timeout (> %ds)",
+                                   request->host.addr, request->host.port,
+                                   REQUEST_PENDING_ACTION_TIMEOUT);
+
+                        /* set appropriated errcode */
+                        switch(request->state)
+                        {
+                        case FSConnecting:
+                                request->errcode = REQ_ERR_CONNECT_TIMEOUT;
+                                break;
+                        case FSWaitingResponse:
+                                request->errcode = REQ_ERR_RESPONSE_TIMEOUT;
+                                break;
+                        case FSSending:
+                                request->errcode = REQ_ERR_SENDING_TIMEOUT;
+                                break;
+                        default:
+                                request->errcode = REQ_ERR_UNKNOWN;
+                                break;
+                        }
+
+                        request->state = FSError;
+                }
+
                 if(request->state == FSError
                    || request->state == FSFinished)
                 {
-                        log_debug("remove &request:%p - state:%d - socket:%d",
-                                  request, request->state, request->s);
+                        log_debug("&request:%p, FSFinished|FSError|timeout"
+                                  " - remove it", request);
 
-                        if(request->state == FSError)
-                        {
-                                request->ctl.hook_func(request,
-                                                       request->ctl.hook_data);
-                        }
+                        /* call hook func */
+                        request->ctl.hook_func(request, request->ctl.hook_data);
 
-                        if(request->s >= 0)
-                        {
-                                close(request->s);
-                                request->s = -1;
-                        }
+                        close(request->s);
+                        request->s = -1;
 
                         list_del(&(request->list));
                         free(request);
@@ -437,14 +506,11 @@ int request_ctl_remove_by_hook_data(const void *hook_data)
                 {
                         ++i;
 
-                        log_debug("remove &request:%p - state:%d - socket:%d",
-                                  request, request->state, request->s);
+                        log_debug("&request:%p, remove it",
+                                  request);
 
-                        if(request->s >= 0)
-                        {
-                                close(request->s);
-                                request->s = -1;
-                        }
+                        close(request->s);
+                        request->s = -1;
 
                         list_del(&(request->list));
                         free(request);
