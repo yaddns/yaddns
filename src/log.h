@@ -97,7 +97,7 @@
 #ifdef DEBUG
 #define log_debug(fmt, ...)                                             \
 	do {                                                            \
-                log_it(LOG_DEBUG, COLOR_BLUE("%s %s - " fmt EOL),       \
+                log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt EOL),    \
                        "--- DEBUG ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 #else
