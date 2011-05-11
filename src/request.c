@@ -144,10 +144,6 @@ static void request_connect(struct request *request)
                 }
                 else if(ret < 0)
                 {
-                        log_notice("connect(%s:%u): %m.",
-                                   inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
-                                   ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port));
-
                         if(errno == EINPROGRESS)
                         {
                                 request->state = FSConnecting;
@@ -155,6 +151,11 @@ static void request_connect(struct request *request)
                                         timeofday.tv_sec;
                                 break;
                         }
+
+                        /* big error */
+                        log_notice("connect(%s:%u): %m.",
+                                   inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
+                                   ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port));
                 }
         }
 
