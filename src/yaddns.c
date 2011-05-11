@@ -246,6 +246,7 @@ int main(int argc, char **argv)
                 {
                         log_error("Failed to create pidfile %s: %m",
                                   cfgstr_get(&(cfg.pidfile)));
+                        ret = 1;
                         goto exit_clean;
                 }
         }
