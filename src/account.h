@@ -62,6 +62,10 @@ extern void account_ctl_manage(void);
  */
 extern void account_ctl_needupdate(void);
 
+/* unfreeze all accounts
+ */
+extern void account_ctl_unfreeze_all(void);
+
 /* after reading cfg, create account controlers */
 extern int account_ctl_mapcfg(struct cfg *cfg);
 

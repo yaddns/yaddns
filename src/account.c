@@ -13,6 +13,9 @@
 #include "log.h"
 #include "util.h"
 
+/* sleep REQ_SLEEPTIME_ON_ERROR when got an request error */
+#define REQ_SLEEPTIME_ON_ERROR 5
+
 /* decs public variables */
 struct list_head account_list;
 
@@ -61,11 +64,14 @@ static void account_reqhook_readresponse(struct account *account,
         }
         else
         {
-                log_notice("update failed for account '%s' (%d: %s - %s)",
+                log_notice("update failed for account '%s' (%d: %s - %s)"
+                           " => freeze_time=%d, locked=%d",
                            cfgstr_get(&(account->cfg->name)),
                            report.code,
                            report.custom_rc,
-                           report.custom_rc_text);
+                           report.custom_rc_text,
+                           report.rcmd_freeze ? report.rcmd_freezetime : 0,
+                           report.rcmd_lock);
 
                 account->status = ASError;
                 account->locked = report.rcmd_lock;
@@ -84,7 +90,13 @@ static void account_reqhook_error(struct account *account,
 {
         account->status = ASError;
         log_error("account '%s' update failed (errcode=%d)",
-                  cfgstr_get(&(account->cfg->name)), errcode);
+                  " => freeze_time=%d",
+                  cfgstr_get(&(account->cfg->name)), errcode,
+                  REQ_SLEEPTIME_ON_ERROR);
+
+        account->freezed = 1;
+        account->freeze_time.tv_sec = timeofday.tv_sec;
+        account->freeze_interval.tv_sec = REQ_SLEEPTIME_ON_ERROR;
 }
 
 static void account_reqhook(struct request *request, void *data)
@@ -233,6 +245,17 @@ void account_ctl_needupdate(void)
                             &(account_list), list)
         {
                 account->updated = 0;
+        }
+}
+
+void account_ctl_unfreeze_all(void)
+{
+        struct account *account = NULL;
+
+        list_for_each_entry(account,
+                            &(account_list), list)
+        {
+                account->freezed = 0;
         }
 }
 

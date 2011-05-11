@@ -20,6 +20,7 @@
 static volatile sig_atomic_t keep_going = 0;
 static volatile sig_atomic_t reloadconf = 0;
 static volatile sig_atomic_t wakeup = 0;
+static volatile sig_atomic_t unfreeze = 0;
 
 struct timeval timeofday = {0, 0};
 struct in_addr wanip;
@@ -41,6 +42,11 @@ static void sig_handler(int signum)
         {
                 log_notice("Receive SIGUSR1. Wake up !");
                 wakeup = 1;
+        }
+        else if(signum == SIGUSR2)
+        {
+                log_notice("Receive SIGUSR2. Unfreeze accounts !");
+                unfreeze = 1;
         }
 }
 
@@ -72,6 +78,12 @@ static int sig_setup(void)
         if(sigaction(SIGUSR1, &sa, NULL) != 0)
 	{
 		log_error("Failed to install signal handler for SIGUSR1: %m");
+		return -1;
+	}
+
+        if(sigaction(SIGUSR2, &sa, NULL) != 0)
+	{
+		log_error("Failed to install signal handler for SIGUSR2: %m");
 		return -1;
 	}
 
@@ -317,6 +329,16 @@ int main(int argc, char **argv)
                                 wanip_needupdate(&cfg);
 
                                 wakeup = 0;
+                                continue;
+                        }
+
+                        if(unfreeze)
+                        {
+                                log_debug("unfreeze all freezed account");
+
+                                account_ctl_unfreeze_all();
+
+                                unfreeze = 0;
                                 continue;
                         }
 
