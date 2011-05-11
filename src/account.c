@@ -83,7 +83,8 @@ static void account_reqhook_error(struct account *account,
                                   int errcode)
 {
         account->status = ASError;
-        log_error("account %s update failed (errcode=%d)", errcode);
+        log_error("account '%s' update failed (errcode=%d)",
+                  cfgstr_get(&(account->cfg->name)), errcode);
 }
 
 static void account_reqhook(struct request *request, void *data)
