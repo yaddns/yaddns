@@ -25,34 +25,34 @@
 
 #define REQUEST_DATA_MAX_SIZE       512
 
-/* #define FS_HOOKMASK_ERROR              0x0001 << 0 */
-/* #define FS_HOOKMASK_CREATED            0x0001 << 1 */
-/* #define FS_HOOKMASK_CONNECTING         0x0001 << 2 */
-/* #define FS_HOOKMASK_SENDING            0x0001 << 3 */
-/* #define FS_HOOKMASK_DATATOSEND         0x0001 << 4 */
-/* #define FS_HOOKMASK_DATASENT           0x0001 << 5 */
-/* #define FS_HOOKMASK_WAITINGRESPONSE    0x0001 << 6 */
-/* #define FS_HOOKMASK_RESPONSERECEIVED   0x0001 << 7 */
+#define REQUEST_PENDING_ACTION_TIMEOUT     30
 
 #define REQ_OPT_BIND_ADDR           0x01 << 0
 
-#define REQ_ERRNO_NOERROR           0
+#define REQ_ERR_UNKNOWN             0
+#define REQ_ERR_SYSTEM              1
+#define REQ_ERR_CONNECT_FAILED      2
+#define REQ_ERR_CONNECT_TIMEOUT     3
+#define REQ_ERR_RESPONSE_TIMEOUT    4
+#define REQ_ERR_SENDING_TIMEOUT     5
 
 /*
  * This module is for helping send an request and receive
  * response.
  *
- * A request has 6 flow states availables:
- * - FSError                     => An error occur (view errno code)
+ * A request has 8 flow states availables:
+ * - FSError                     => An error occur (view errcode for more info)
  * - FSCreated                   => The request is created
- * - FSConnecting                => The request has a connection to request_host
+ * - FSConnecting                => The request has a connecting
+ *                                    socket to request_host
+ * - FSConnected                 => The request has a connection
  * - FSSending                   => The request is sent
  * - FSWaitingResponse           => Waiting request response
  * - FSResponseReceived          => Request response was received
  * - FSFinished                  => Request is terminated
  *
- * A request has these errno codes:
- * - 0   = no error
+ * A request with FSError is along of errcode variable which detail
+ * the error (view REQ_ERR_* macro def).
  */
 
 struct request;
@@ -89,12 +89,14 @@ struct request {
                 FSError = -1,
                 FSCreated,
                 FSConnecting,
+                FSConnected,
                 FSSending,
                 FSWaitingResponse,
                 FSResponseReceived,
                 FSFinished,
         } state;
         int errcode;
+	struct timeval last_pending_action;
         struct list_head list;
 };
 
