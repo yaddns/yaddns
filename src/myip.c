@@ -11,8 +11,8 @@
 #include "yaddns.h"
 #include "log.h"
 
-/* sleep MYIP_SLEEPTIME_ON_ERROR when got an error */
-#define MYIP_SLEEPTIME_ON_ERROR 60
+/* sleep REQ_SLEEPTIME_ON_ERROR when got an request error */
+#define REQ_SLEEPTIME_ON_ERROR 60
 
 static struct myip_ctl {
         enum {
@@ -110,8 +110,9 @@ static void myip_reqhook_recv(struct request_buff *buff)
 
 static void myip_reqhook_error(struct request *request)
 {
-        log_error("myip failed to get wan ip address from %s:%u "
-                  "(errcode=%d)", request->host.addr, request->host.port,
+        log_error("myip failed to retrieve wan ip address from %s:%u "
+                  "(errcode=%d)",
+                  request->host.addr, request->host.port,
                   request->errcode);
 
         /* update myip_ctl structure */
@@ -119,7 +120,7 @@ static void myip_reqhook_error(struct request *request)
            || request->errcode == REQ_ERR_RESPONSE_TIMEOUT
            || request->errcode == REQ_ERR_SENDING_TIMEOUT)
         {
-                /* try again */
+                /* try again immediatly */
                 myip_ctl.status = MISNeedUpdate;
         }
         else
@@ -203,7 +204,7 @@ int myip_getwanipaddr(const struct cfg_myip *cfg_myip, struct in_addr *wanaddr)
                 >= cfg_myip->upint))
            || (myip_ctl.status == MISError
                && (timeofday.tv_sec - myip_ctl.timelasterror.tv_sec
-                   >= MYIP_SLEEPTIME_ON_ERROR)))
+                   >= REQ_SLEEPTIME_ON_ERROR)))
         {
                 /* timeout, need update */
                 myip_ctl.status = MISNeedUpdate;
