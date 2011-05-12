@@ -33,21 +33,36 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 	/* Transform the 3x8 bits to 4x6 bits, as required by base64. */
 	for (i = 0; i < len; i += 3)
 	{
+                /* square 1 */
 		*p++ = tbl[src[0] >> 2];
-		*p++ = tbl[((src[0] & 3) << 4) + (src[1] >> 4)];
-		*p++ = tbl[((src[1] & 0xf) << 2) + (src[2] >> 6)];
-		*p++ = tbl[src[2] & 0x3f];
-		src += 3;
-	}
 
-	/* Pad the result if necessary... */
-	if (i == len + 1)
-	{
-		*(p - 1) = '=';
-	}
-	else if (i == len + 2)
-	{
-		*(p - 1) = *(p - 2) = '=';
+                /* square 2 */
+                if(i + 1 >= len)
+                {
+                        *p++ = tbl[((src[0] & 3) << 4)];
+                        /* pad two equal char */
+                        *p = *(p + 1) = '=';
+                        p += 2;
+                        break;
+                }
+
+                *p++ = tbl[((src[0] & 3) << 4) + (src[1] >> 4)];
+
+                /* square 3 */
+                if(i + 2 >= len)
+                {
+                        *p++ = tbl[((src[1] & 0xf) << 2)];
+                        /* pad one equal char */
+                        *p++ = '=';
+                        break;
+                }
+
+		*p++ = tbl[((src[1] & 0xf) << 2) + (src[2] >> 6)];
+
+                /* square 4 */
+		*p++ = tbl[src[2] & 0x3f];
+
+		src += 3;
 	}
 
 	/* ...and zero-teminate it.  */
