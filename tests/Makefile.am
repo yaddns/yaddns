@@ -1,4 +1,4 @@
-TESTS = check_request check_cfgstr check_config check_account
+TESTS = check_request check_cfgstr check_config check_account check_util
 
 check_PROGRAMS = $(TESTS)
 
@@ -23,3 +23,6 @@ check_account_SOURCES = check_account.c $(top_builddir)/src/account.h \
 		$(top_builddir)/src/config.h \
 		$(top_builddir)/src/service.h
 check_account_LDADD = $(YADDNS_OBJS)
+
+check_util_SOURCES = check_util.c $(top_builddir)/src/util.h
+check_util_LDADD = $(YADDNS_OBJS)
