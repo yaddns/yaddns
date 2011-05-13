@@ -7,14 +7,13 @@
 
 TEST_DEF(test_util_base64)
 {
-        char buf[256];
         char *buf64 = NULL;
         size_t buf64_size;
         unsigned int i;
 
         struct {
-                char *src;
-                char *src64;
+                const char *src;
+                const char *src64;
         } tarray[] = {
                 { "test0001:tub78jk", "dGVzdDAwMDE6dHViNzhqaw==", },
         };
