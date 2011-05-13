@@ -100,6 +100,7 @@ int main(void)
 
         TEST_RUN(test_cfgstr_init);
         TEST_RUN(test_cfgstr_set);
+        TEST_RUN(test_cfgstr_dup);
         TEST_RUN(test_cfgstr_unset);
         TEST_RUN(test_cfgstr_move);
 
