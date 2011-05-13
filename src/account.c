@@ -132,10 +132,11 @@ void account_ctl_cleanup(void)
 }
 
 /*
- * create updatepkt if:
- * - wan ip has changed and the service isn't locked of freezed
- * - 28 days after last update if IP no changed yet otherwise dyndns server
- *   don't know we are still alive
+ * ctl manage of account:
+ * - unfreeze account if the freezetime is over;
+ * - force reupdate for account which have done their update 28 days ago:
+ *    otherwise dyndns server don't know we are still alive...;
+ * - if get wan ip addr, launch update procedure for accounts not updated;
  */
 void account_ctl_manage(void)
 {
