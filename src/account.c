@@ -211,7 +211,7 @@ void account_ctl_manage(void)
                         /* req_buff structure, tell to service to fill it */
                         memset(&req_buff, 0, sizeof(req_buff));
 
-                        if(account->def->make_query(*(account->cfg),
+                        if(account->def->make_query(account->cfg,
                                                     buf_wanip,
                                                     &req_buff) != 0)
                         {

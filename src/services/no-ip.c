@@ -37,7 +37,7 @@
 #define DDNS_HOST "dynupdate.no-ip.com"
 #define DDNS_PORT 80
 
-static int ddns_write(const struct cfg_account cfg,
+static int ddns_write(const struct cfg_account *cfg,
                       const char const *newwanip,
                       struct request_buff *buff);
 
@@ -120,7 +120,7 @@ static struct {
 	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
-static int ddns_write(const struct cfg_account cfg,
+static int ddns_write(const struct cfg_account *cfg,
                       const char const *newwanip,
                       struct request_buff *buff)
 {
@@ -131,7 +131,7 @@ static int ddns_write(const struct cfg_account cfg,
 
 	/* make the update packet */
 	snprintf(buf, sizeof(buf), "%s:%s",
-                 cfgstr_get(&(cfg.username)), cfgstr_get(&(cfg.passwd)));
+                 cfgstr_get(&(cfg->username)), cfgstr_get(&(cfg->passwd)));
 
 	if (util_base64_encode(buf, &b64_loginpass, &b64_loginpass_size) != 0)
 	{
@@ -149,7 +149,7 @@ static int ddns_write(const struct cfg_account cfg,
                      "User-Agent: " PACKAGE "/" VERSION "\r\n"
                      "Connection: close\r\n"
                      "Pragma: no-cache\r\n\r\n",
-                     cfgstr_get(&(cfg.hostname)),
+                     cfgstr_get(&(cfg->hostname)),
                      newwanip,
                      b64_loginpass);
 

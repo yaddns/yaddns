@@ -49,7 +49,7 @@ struct service {
         short int portserv;
 	int (*ctor) (void);
 	int (*dtor) (void);
-	int (*make_query) (const struct cfg_account cfg,
+	int (*make_query) (const struct cfg_account *cfg,
                            const char const *newwanip,
                            struct request_buff *buff);
 	int (*read_resp) (struct request_buff *buff,
