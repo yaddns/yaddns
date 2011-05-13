@@ -16,10 +16,14 @@ Compilation/Installation
 Usage
 -------------------------------------------
 
- * Edit yaddns.conf file
- * Launch yaddns like this:
-   /usr/bin/yaddns -f /etc/yaddns.conf -p /var/run/yaddns.pid
-   (type /usr/bin/yaddns --help for more informations)
+ - You can find full documentation on yaddns usage here:
+
+    https://github.com/yaddns/yaddns/wiki/How-to-use-yaddns
+
+ - For those in a hurry, here the 2 things to do to bring yaddns up:
+  * Edit yaddns.conf file
+  * Launch yaddns like this:
+     /usr/bin/yaddns -f /etc/yaddns.conf -p /var/run/yaddns.pid
 
 Compilation tricks for developpers
 -------------------------------------------
@@ -35,10 +39,10 @@ License
 
  View COPYING file
 
-Trac/Docs/Bug reports
+Wiki/Docs/Bug reports
 -------------------------------------------
 
- http://patatrac.info/yaddns
+ https://github.com/yaddns/yaddns/
 
 Source repository
 -------------------------------------------
