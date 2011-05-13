@@ -1,3 +1,13 @@
+yaddns 1.1:
+        * autotools refactoring
+        * fix blocked state in request if connect() or recv() failed.
+          Add timeout feature which abort pending request (connect(), send(), recv())
+          after XX seconds.
+        * add new ./configure option --enable-debug
+        * fix segfault case if user remove account cfg and SIGHUP yaddns when doing
+          update procedure for the removed account.
+        * fix buffer overread in base64_encode function 
+
 yaddns 1.0:
 	* indirect wan ip address retrieve with "myip" http service
 	* fix segfault on log_error when dns lookup failed
