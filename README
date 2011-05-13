@@ -1,5 +1,5 @@
- Yaddns (c) Anthony Viallard
-=============================
+    Yaddns
+==============
 
 Generating compilation tools with autotools
 -------------------------------------------
@@ -7,37 +7,48 @@ Generating compilation tools with autotools
  ./autogen.sh
 
 Compilation/Installation
-------------------------
+-------------------------------------------
 
  ./configure
  make
  make install
 
+Usage
+-------------------------------------------
+
+ * Edit yaddns.conf file
+ * Launch yaddns like this:
+   /usr/bin/yaddns -f /etc/yaddns.conf -p /var/run/yaddns.pid
+   (type /usr/bin/yaddns --help for more informations)
+
 Compilation tricks for developpers
-----------------------------------
+-------------------------------------------
 
-To have debug messages and -g CFLAGS, set the DEBUG flag with this command:
- ./configure --enable-debug
+ - To have debug messages and -g CFLAGS, set the DEBUG flag with this command:
+    ./configure --enable-debug
 
-If you want to compile and execute test programs from tests/ directory, type:
- make check
+ - If you want to compile and execute test programs from tests/ directory, type:
+    make check
 
 License
--------
+-------------------------------------------
 
-View COPYING file
+ View COPYING file
 
 Trac/Docs/Bug reports
----------------------
+-------------------------------------------
 
  http://patatrac.info/yaddns
 
-Svn
----
+Source repository
+-------------------------------------------
 
- svn://patatrac.info/yaddns
+ git://github.com/yaddns/yaddns.git
+
+ - If you want to collaborate to this project, sign up to github.com
+   and go to https://github.com/yaddns/yaddns
 
 Contact
--------
+-------------------------------------------
 
  * Anthony Viallard <avd@patatrac.info>
