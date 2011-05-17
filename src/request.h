@@ -19,6 +19,7 @@
 #ifndef _YADDNS_REQUEST_H_
 #define _YADDNS_REQUEST_H_
 
+#include <sys/time.h>
 #include <netinet/in.h>
 
 #include "list.h"
