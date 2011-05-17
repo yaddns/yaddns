@@ -89,7 +89,7 @@ static void account_reqhook_error(struct account *account,
                                   int errcode)
 {
         account->status = ASError;
-        log_error("account '%s' update failed (errcode=%d)",
+        log_error("account '%s' update failed (errcode=%d)"
                   " => freeze_time=%d",
                   cfgstr_get(&(account->cfg->name)), errcode,
                   REQ_SLEEPTIME_ON_ERROR);
