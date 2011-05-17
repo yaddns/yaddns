@@ -1,6 +1,10 @@
 #ifndef __LIST_H
 #define __LIST_H
 
+/* Rename LIST_HEAD(name) macro to LIST_HEAD_DECL(name) to avoid
+ * macro redefinition error with NetBSD.
+ */
+
 /* This file is from Linux Kernel (include/linux/list.h)
  * and modified by simply removing hardware prefetching of list items.
  * Here by copyright, credits attributed to wherever they belong.
@@ -23,7 +27,7 @@ struct list_head {
 
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 
-#define LIST_HEAD(name) \
+#define LIST_HEAD_DECL(name) \
 	struct list_head name = LIST_HEAD_INIT(name)
 
 #define INIT_LIST_HEAD(ptr) do { \
