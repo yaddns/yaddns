@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -95,7 +96,8 @@ static void myip_reqhook_recv(struct request_buff *buff)
                  "%d.%d.%d.%d", ip1, ip2, ip3, ip4);
         if(inet_aton(ip, &inp) == 0)
         {
-                log_error("inet_aton(%s) failed: %m", ip);
+                log_error("inet_aton(%s) failed: %s",
+                          ip, strerror(errno));
                 myip_ctl.status = MISError;
                 memcpy(&myip_ctl.timelasterror,
                        &timeofday, sizeof(struct timeval));

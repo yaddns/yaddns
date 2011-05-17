@@ -1,4 +1,6 @@
+#include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -77,7 +79,8 @@ void util_getuptime(struct timeval *tv)
 
         if (clock_gettime(CLOCK_MONOTONIC, &tp) != 0)
 	{
-		log_error("Error getting clock %m !");
+		log_error("Error getting clock %s !",
+                          strerror(errno));
 		tv->tv_sec = 0;
 		tv->tv_usec = 0;
 		return;
@@ -102,7 +105,8 @@ int util_getifaddr(const char *ifname, struct in_addr *addr)
 	s = socket(PF_INET, SOCK_DGRAM, 0);
 	if(s < 0)
 	{
-		log_error("socket(PF_INET, SOCK_DGRAM): %m");
+		log_error("socket(PF_INET, SOCK_DGRAM): %s",
+                          strerror(errno));
 		return -1;
 	}
 
@@ -113,7 +117,8 @@ int util_getifaddr(const char *ifname, struct in_addr *addr)
 
 	if(ioctl(s, SIOCGIFADDR, &ifr, &ifrlen) < 0)
 	{
-		log_error("ioctl(s, SIOCGIFADDR, ...): %m");
+		log_error("ioctl(s, SIOCGIFADDR, ...): %s",
+                          strerror(errno));
 		close(s);
 		return -1;
 	}

@@ -42,7 +42,7 @@ static int request_open_socket(struct request *request)
         request->s = socket(PF_INET, SOCK_STREAM, 0);
         if(request->s < 0)
         {
-                log_error("socket(): %m");
+                log_error("socket(): %s", strerror(errno));
                 goto exit_error;
         }
 
@@ -51,14 +51,14 @@ static int request_open_socket(struct request *request)
 
         if((flags = fcntl(request->s, F_GETFL, 0)) < 0)
         {
-		log_error("fcntl(..F_GETFL..): %m");
+		log_error("fcntl(..F_GETFL..): %s", strerror(errno));
 		goto exit_error;
 	}
 
         /* no blockant */
 	if(fcntl(request->s, F_SETFL, flags | O_NONBLOCK) < 0)
         {
-		log_error("fcntl(..F_SETFL..): %m");
+		log_error("fcntl(..F_SETFL..): %s", strerror(errno));
 		goto exit_error;
         }
 
@@ -76,7 +76,7 @@ static int request_open_socket(struct request *request)
                         (struct sockaddr *)&sockname,
                         (socklen_t)sizeof(struct sockaddr_in)) < 0)
                 {
-                        log_error("bind(): %m");
+                        log_error("bind(): %s", strerror(errno));
                         goto exit_error;
                 }
         }
@@ -156,9 +156,10 @@ static void request_connect(struct request *request)
                         }
 
                         /* big error */
-                        log_notice("connect(%s:%u): %m.",
+                        log_notice("connect(%s:%u): %s.",
                                    inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
-                                   ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port));
+                                   ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port),
+                                   strerror(errno));
                 }
         }
 
@@ -186,8 +187,9 @@ static void request_process(struct request *request)
                 if(getsockopt(request->s, SOL_SOCKET,
                               SO_ERROR, &err, &errsize) != 0)
                 {
-                        log_error("getsockopt(%d, SO_ERROR) failed: %m",
-                                  request->s);
+                        log_error("getsockopt(%d, SO_ERROR) failed: %s",
+                                  request->s,
+                                  strerror(errno));
                         request->state = FSError;
                         request->errcode = REQ_ERR_SYSTEM;
                         break;
@@ -247,7 +249,7 @@ static void request_process_send(struct request *request)
                  0);
         if(i < 0)
         {
-                log_error("send(): %d %m", errno);
+                log_error("send(): %s", strerror(errno));
                 request->state = FSError;
                 request->errcode = REQ_ERR_SYSTEM;
                 return;
@@ -285,8 +287,9 @@ static void request_process_recv(struct request *request)
                  0);
         if(n < 0)
         {
-                log_error("Error when reading socket %d: %m",
-                          request->s);
+                log_error("Error when reading socket %d: %s",
+                          request->s,
+                          strerror(errno));
                 request->state = FSError;
                 request->errcode = REQ_ERR_SYSTEM;
                 return;

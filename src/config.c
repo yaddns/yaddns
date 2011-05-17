@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
 #include <ctype.h>
 #include <string.h>
 #include <getopt.h>
@@ -268,8 +269,8 @@ int config_parse_file(struct cfg *cfg)
 
         if((file = fopen(filename, "r")) == NULL)
         {
-                log_error("Error when trying to open '%s' config file: %m",
-                          filename);
+                log_error("Error when trying to open '%s' config file: %s",
+                          filename, strerror(errno));
 		return -1;
         }
 

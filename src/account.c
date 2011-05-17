@@ -152,7 +152,7 @@ void account_ctl_manage(void)
         /* transform wan ip raw in ascii char */
         if(!inet_ntop(AF_INET, &wanip, buf_wanip, sizeof(buf_wanip)))
         {
-                log_error("inet_ntop(): %m");
+                log_error("inet_ntop(): %s", strerror(errno));
                 return;
         }
 

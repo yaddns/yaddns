@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -59,31 +60,36 @@ static int sig_setup(void)
 
 	if(sigaction(SIGTERM, &sa, NULL) != 0)
 	{
-		log_error("Failed to install signal handler for SIGTERM: %m");
+		log_error("Failed to install signal handler for SIGTERM: %s",
+                          strerror(errno));
 		return -1;
 	}
 
 	if(sigaction(SIGINT, &sa, NULL) != 0)
 	{
-		log_error("Failed to install signal handler for SIGINT: %m");
+		log_error("Failed to install signal handler for SIGINT: %s",
+                          strerror(errno));
 		return -1;
 	}
 
         if(sigaction(SIGHUP, &sa, NULL) != 0)
 	{
-		log_error("Failed to install signal handler for SIGHUP: %m");
+		log_error("Failed to install signal handler for SIGHUP: %s",
+                          strerror(errno));
 		return -1;
 	}
 
         if(sigaction(SIGUSR1, &sa, NULL) != 0)
 	{
-		log_error("Failed to install signal handler for SIGUSR1: %m");
+		log_error("Failed to install signal handler for SIGUSR1: %s",
+                          strerror(errno));
 		return -1;
 	}
 
         if(sigaction(SIGUSR2, &sa, NULL) != 0)
 	{
-		log_error("Failed to install signal handler for SIGUSR2: %m");
+		log_error("Failed to install signal handler for SIGUSR2: %s",
+                          strerror(errno));
 		return -1;
 	}
 
@@ -264,8 +270,9 @@ int main(int argc, char **argv)
                 }
                 else
                 {
-                        log_error("Failed to create pidfile %s: %m",
-                                  cfgstr_get(&(cfg.pidfile)));
+                        log_error("Failed to create pidfile %s: %s",
+                                  cfgstr_get(&(cfg.pidfile)),
+                                  strerror(errno));
                         ret = 1;
                         goto exit_clean;
                 }
@@ -343,7 +350,8 @@ int main(int argc, char **argv)
                         }
 
                         /* very serious cause of error */
-                        log_critical("select failed ! %m");
+                        log_critical("select failed ! %s",
+                                     strerror(errno));
                         ret = 1;
                         break;
                 }
