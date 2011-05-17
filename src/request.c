@@ -106,7 +106,10 @@ static void request_connect(struct request *request)
 
         memset(&hints, '\0', sizeof(hints));
         hints.ai_socktype = SOCK_STREAM;
+#if defined(AI_ADDRCONFIG)
+	/* some OS (like netbsd) doesn't have AI_ADDRCONFIG flag */
         hints.ai_flags = AI_ADDRCONFIG;
+#endif
 
         e = getaddrinfo(request->host.addr,
                         serv,
