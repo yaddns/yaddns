@@ -312,40 +312,42 @@ int main(int argc, char **argv)
                            &readset, &writeset, NULL,
                            &timeout, &unblocked) < 0)
                 {
-                        /* error or interuption */
-
-                        if(!keep_going)
+                        if(errno == EINTR)
                         {
-                                break;
-                        }
+                                /* signal was caught */
+                                log_debug("Signal was caught in pselect()");
 
-                        if(reloadconf)
-                        {
-                                log_debug("reload configuration");
+                                if(!keep_going)
+                                {
+                                        break;
+                                }
 
-                                reload_conf(&cfg);
+                                if(reloadconf)
+                                {
+                                        log_debug("reload configuration");
 
-                                reloadconf = 0;
-                                continue;
-                        }
+                                        reload_conf(&cfg);
 
-                        if(wakeup)
-                        {
-                                log_debug("force get current wan ip address");
+                                        reloadconf = 0;
+                                }
 
-                                wanip_needupdate(&cfg);
+                                if(wakeup)
+                                {
+                                        log_debug("order retrieve wan ip addr");
 
-                                wakeup = 0;
-                                continue;
-                        }
+                                        wanip_needupdate(&cfg);
 
-                        if(unfreeze)
-                        {
-                                log_debug("unfreeze all freezed account");
+                                        wakeup = 0;
+                                }
 
-                                account_ctl_unfreeze_all();
+                                if(unfreeze)
+                                {
+                                        log_debug("unfreeze all accounts");
 
-                                unfreeze = 0;
+                                        account_ctl_unfreeze_all();
+
+                                        unfreeze = 0;
+                                }
                                 continue;
                         }
 
