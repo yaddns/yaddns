@@ -94,7 +94,7 @@
 /*
  *  Log debug message
  */
-#ifdef DEBUG
+#ifdef DEBUG_LOG
 #define log_debug(fmt, ...)                                             \
 	do {                                                            \
                 log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt EOL),    \

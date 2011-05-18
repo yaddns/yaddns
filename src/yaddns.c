@@ -241,7 +241,7 @@ int main(int argc, char **argv)
                 goto exit_clean;
 	}
 
-#if defined(DEBUG)
+#if defined(DEBUG_LOG)
         config_print(&cfg);
 #endif
 
