@@ -1,0 +1,39 @@
+.\" Process this file with
+.\" groff -man -Tascii yaddns.1
+.\"
+.TH yaddns 1 "May 2011" "Yaddns" ""
+.SH NAME
+yaddns - ddns client with multiple services support.
+.SH SYNOPSIS
+.B yaddns [-f cfg_filename] [-p pid_file] [-D]
+.SH DESCRIPTION
+Yaddns is a small ddns client with multiple ddns servers support (dyndns.org, no-ip, ovh, changeip, dyndns.it, ...) and a high flexibility.
+.SH OPTIONS
+.TP
+\fB-f\fR, \fB--cfg-filename\fR
+Config file to be used
+.TP
+\fB-p\fR, \fB--pid-file\fR
+PID file to be used
+.TP
+\fB-D\fR, \fB--daemonize\fR
+Daemonize yaddns
+.TP
+\fB-h\fR, \fB--help\fR
+Display the help
+.TP
+\fB-l\fR, \fB--list-service\fR
+Display the list of available ddns service
+.TP
+\fB-V\fR, \fB--version\fR
+Display the version
+.SH FILES
+.I /etc/yaddns.conf
+.RS
+The configuration file. See
+.BR yaddns.conf (5)
+for further details.
+.SH AUTHOR
+Anthony Viallard <anthony.viallard@patatrac.info>
+.SH "SEE ALSO"
+.BR yaddns.conf (5)

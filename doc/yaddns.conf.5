@@ -1,0 +1,55 @@
+.\" Process this file with
+.\" groff -man -Tascii yaddns.5
+.\"
+.TH yaddns.conf 5 "May 2011" "yaddns.conf" ""
+.SH NAME
+yaddns.conf - configuration file for yaddns
+.SH SYNOPSIS
+yaddns.conf file contains general and ddns accounts configuration.
+
+yaddns supports retrieve of wan ip address using http service which give the wan ip address of client. In yaddns, this feature is called
+.I myip
+.SH DESCRIPTION
+The format of yaddns.conf is a text file containing a series of lines of the form :
+.TP
+.IB name = value
+.PP
+.SS General configuration
+.IP "wanifname"
+set the name of interface which is connected to wan (and which has the wan ip address).
+.IP "mode"
+set to one of the following values: direct or indirect.
+if mode is
+.I "direct"
+, yaddns uses
+.B "wanifname"
+ to retrieve wan ip address. Otherwise, if mode is
+.I "indirect"
+, it uses "myip service" to grab wan ip address
+.IP "myip_host"
+the hostname of http server
+.IP "myip_path"
+the page on http server where find wan ip address
+.IP "myip_port"
+the port of http server
+.IP "myip_upint"
+time interval between each grab request
+.SS Account configuration
+Each account is defined in block delimited by
+.B "{"
+and 
+.B "}"
+.IP "name"
+name of this account (must be unique in the config file)
+.IP "service"
+the name of service (changeip, dyndns, dyndnsit, no-ip, ovh, sitelutions,...) which is used for this account
+.IP "username"
+the service username
+.IP "password"
+the service password
+.IP "hostname"
+the service hostname
+.SH AUTHOR
+Anthony Viallard <anthony.viallard@patatrac.info>
+.SH "SEE ALSO"
+.BR yaddns (1)
