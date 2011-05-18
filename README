@@ -1,11 +1,6 @@
     Yaddns
 ==============
 
-Generating compilation tools with autotools
--------------------------------------------
-
- ./autogen.sh
-
 Compilation/Installation
 -------------------------------------------
 
@@ -28,8 +23,14 @@ Usage
 Compilation tricks for developpers
 -------------------------------------------
 
- - To have debug messages and -g CFLAGS, set the DEBUG flag with this command:
+ - Generate ./configure and other tools for the compilation:
+    ./autogen.sh
+
+ - To have -g and -DDEBUG CFLAGS:
     ./configure --enable-debug
+
+ - To have extra debug messages:
+    ./configure --enable-debug-log
 
  - If you want to compile and execute test programs from tests/ directory, type:
     make check
