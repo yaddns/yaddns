@@ -1,4 +1,3 @@
 SUBDIRS = src tests
 
-EXTRA_DIST = autogen.sh \
-	etc/yaddns.conf
+EXTRA_DIST = etc/yaddns.conf
