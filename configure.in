@@ -37,8 +37,8 @@ if test "x$GCC" = "xyes"; then
    AX_CFLAGS_GCC_OPTION(-Waggregate-return)
    AX_CFLAGS_GCC_OPTION(-Wcast-qual)
    AX_CFLAGS_GCC_OPTION(-Wswitch-default)
-   AX_CFLAGS_GCC_OPTION(-Wswitch-enum)
-   AX_CFLAGS_GCC_OPTION(-Wconversion)
+#   AX_CFLAGS_GCC_OPTION(-Wswitch-enum)
+#   AX_CFLAGS_GCC_OPTION(-Wconversion)
    AX_CFLAGS_GCC_OPTION(-Wunreachable-code)
    AX_CFLAGS_GCC_OPTION(-Wformat=2)
 fi
