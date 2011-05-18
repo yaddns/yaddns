@@ -182,7 +182,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         printf("Options:\n");
                         printf(" -f, --cfg=FILE\t\tConfig file to be used\n");
                         printf(" -p, --pid-file=FILE\tPID file to be used\n");
-                        printf(" -D, --daemonize\t\tDaemonize yaddns\n");
+                        printf(" -D, --daemonize\tDaemonize yaddns\n");
                         printf(" -h, --help\t\tDisplay this help\n");
                         printf(" -l, --list-service\tDisplay the "
                                "list of available services\n");
