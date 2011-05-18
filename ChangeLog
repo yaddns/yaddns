@@ -3,7 +3,9 @@ yaddns 1.1:
         * fix blocked state in request if connect() or recv() failed.
           Add timeout feature which abort pending request (connect(), send(), recv())
           after XX seconds.
-        * add new ./configure option --enable-debug
+        * add new ./configure options:
+           * --enable-debug
+           * --enable-debug-log
         * fix segfault case if user remove account cfg and SIGHUP yaddns when doing
           update procedure for the removed account.
         * fix buffer overread in base64_encode function
