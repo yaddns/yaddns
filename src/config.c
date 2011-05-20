@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <getopt.h>
+#include <limits.h>
 
 #include "config.h"
 #include "log.h"
@@ -18,7 +19,7 @@
 /*
  * spaces = space, \f, \n, \r, \t and \v
  */
-static int config_get_assignment(FILE *file, char *buffer, size_t buffer_size,
+static int config_get_assignment(FILE *file, char *buffer, int buffer_size,
                                  const char *filename, int *linenum,
                                  char **name, char **value)
 {
@@ -381,7 +382,7 @@ int config_parse_file(struct cfg *cfg)
                                 break;
                         }
 
-                        cfg->myip.port = n;
+                        cfg->myip.port = (unsigned short int)n;
                         ++myip_assign_count;
                 }
                 else if(strcmp(name, "myip_path") == 0)
@@ -392,14 +393,14 @@ int config_parse_file(struct cfg *cfg)
                 else if(strcmp(name, "myip_upint") == 0)
                 {
                         n = strtol_safe(value, -1);
-                        if(n == -1 || n <=0)
+                        if(n == -1 || n <=0 || n > INT_MAX)
                         {
                                 log_error("Invalid myip upint %s", value);
                                 ret = -1;
                                 break;
                         }
 
-                        cfg->myip.upint = n;
+                        cfg->myip.upint = (int)n;
                         ++myip_assign_count;
                 }
                 else

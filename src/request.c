@@ -156,7 +156,7 @@ static void request_connect(struct request *request)
                         }
 
                         /* big error */
-                        log_notice("connect(%s:%u): %s.",
+                        log_notice("connect(%s:%u) failed: %s",
                                    inet_ntoa(((struct sockaddr_in*)rp->ai_addr)->sin_addr),
                                    ntohs(((struct sockaddr_in*)rp->ai_addr)->sin_port),
                                    strerror(errno));
@@ -235,7 +235,8 @@ static void request_process(struct request *request)
 static void request_process_send(struct request *request)
 {
         ssize_t i;
-        ssize_t remain = request->buff.data_size - request->buff.data_ack;
+        size_t remain = (size_t)(request->buff.data_size
+                                 - request->buff.data_ack);
 
         log_debug("&request:%p, send on %d: %.*s",
                   request,
@@ -254,7 +255,8 @@ static void request_process_send(struct request *request)
                 request->errcode = REQ_ERR_SYSTEM;
                 return;
         }
-        else if(i != remain)
+
+        if((size_t)i != remain)
         {
                 log_notice("%d bytes send out of %d",
                            i, remain);
@@ -262,7 +264,7 @@ static void request_process_send(struct request *request)
 
         log_debug("&request:%p, sent %d bytes", request, i);
 
-        request->buff.data_ack += i;
+        request->buff.data_ack += (size_t)i;
         if(request->buff.data_ack == request->buff.data_size)
         {
                 request->state = FSWaitingResponse;
@@ -298,10 +300,10 @@ static void request_process_recv(struct request *request)
         /* put the \0 at end */
         request->buff.data[n] = '\0';
         log_debug("&request:%p, recv %u bytes: %s",
-                  request, n, request->buff.data);
+                  request, (size_t)n, request->buff.data);
 
-        request->buff.data_size = n;
-        request->buff.data_ack = n;
+        request->buff.data_size = (size_t)n;
+        request->buff.data_ack = (size_t)n;
 
         request->state = FSResponseReceived;
 

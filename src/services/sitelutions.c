@@ -133,8 +133,13 @@ static int ddns_write(const struct cfg_account *cfg,
                      cfgstr_get(&(cfg->username)),
                      cfgstr_get(&(cfg->passwd)),
                      newwanip);
+        if(n < 0)
+        {
+                log_error("Unable to write data buffer");
+                return -1;
+        }
 
-	buff->data_size = n;
+	buff->data_size = (size_t)n;
 
 	return 0;
 }

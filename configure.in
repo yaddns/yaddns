@@ -30,7 +30,7 @@ if test "x$GCC" = "xyes"; then
    AX_CFLAGS_GCC_OPTION(-Wundef)
    AX_CFLAGS_GCC_OPTION(-Wshadow)
    AX_CFLAGS_GCC_OPTION(-Wpointer-arith)
-   AX_CFLAGS_GCC_OPTION(-Wcast-align)
+#   AX_CFLAGS_GCC_OPTION(-Wcast-align)
    AX_CFLAGS_GCC_OPTION(-Wstrict-prototypes)
    AX_CFLAGS_GCC_OPTION(-Wstrict-overflow=5)
    AX_CFLAGS_GCC_OPTION(-Wwrite-strings)
@@ -38,7 +38,7 @@ if test "x$GCC" = "xyes"; then
    AX_CFLAGS_GCC_OPTION(-Wcast-qual)
    AX_CFLAGS_GCC_OPTION(-Wswitch-default)
 #   AX_CFLAGS_GCC_OPTION(-Wswitch-enum)
-#   AX_CFLAGS_GCC_OPTION(-Wconversion)
+   AX_CFLAGS_GCC_OPTION(-Wconversion)
    AX_CFLAGS_GCC_OPTION(-Wunreachable-code)
    AX_CFLAGS_GCC_OPTION(-Wformat=2)
 fi
@@ -46,8 +46,6 @@ fi
 if test "x$enable_debug" = "xyes"; then
    CFLAGS="$CFLAGS -g -DDEBUG"
    AC_MSG_RESULT( => enable debug)
-else
-   CFLAGS="$CFLAGS -O2"
 fi
 
 if test "x$enable_debug_log" = "xyes"; then

@@ -23,15 +23,16 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 		'w','x','y','z','0','1','2','3',
 		'4','5','6','7','8','9','+','/'
 	};
-	int len, i;
-	unsigned char *p = NULL;
+        unsigned int i;
+        size_t len;
+	char *p = NULL;
 
 	len = strlen(src);
 
 	*output_size = 4 * ((len + 2) / 3) + 1;
-	*output = (char *)malloc(*output_size);
+	*output = malloc(*output_size);
 
-	p = (unsigned char *)(*output);
+	p = *output;
 	/* Transform the 3x8 bits to 4x6 bits, as required by base64. */
 	for (i = 0; i < len; i += 3)
 	{
