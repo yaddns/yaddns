@@ -112,10 +112,9 @@ static void myip_reqhook_recv(struct request_buff *buff)
 
 static void myip_reqhook_error(struct request *request)
 {
-        log_error("myip failed to retrieve wan ip address from %s:%u "
-                  "(errcode=%d)",
+        log_error("myip failed to retrieve wan ip address from %s:%u (%s)",
                   request->host.addr, request->host.port,
-                  request->errcode);
+                  strreqerr(request->errcode));
 
         /* update myip_ctl structure */
         if(request->errcode == REQ_ERR_CONNECT_TIMEOUT

@@ -53,7 +53,7 @@
  */
 #define log_critical(fmt, ...)                                          \
 	do {                                                            \
-		log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt EOL), \
+		log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt EOL),   \
                        "--- CRITICAL ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 
@@ -62,8 +62,8 @@
  */
 #define log_error(fmt, ...)                                             \
 	do {                                                            \
-		log_it(LOG_ERR, COLOR_RED("%s %s - " fmt EOL),		\
-			"--- ERROR ---", __func__, ##__VA_ARGS__);	\
+		log_it(LOG_ERR, COLOR_RED("%s - " fmt EOL),		\
+                       "--- ERROR ---", ##__VA_ARGS__);                 \
 	} while (0)
 
 /*
@@ -71,8 +71,8 @@
  */
 #define log_warning(fmt, ...)                                           \
 	do {                                                            \
-                log_it(LOG_WARNING, COLOR_PURPLE("%s %s - " fmt EOL),   \
-                       "--- warning ---", __func__, ##__VA_ARGS__);     \
+                log_it(LOG_WARNING, COLOR_PURPLE("%s - " fmt EOL),      \
+                       "--- warning ---", ##__VA_ARGS__);               \
 	} while (0)
 
 /*

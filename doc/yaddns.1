@@ -5,7 +5,7 @@
 .SH NAME
 yaddns - ddns client with multiple services support.
 .SH SYNOPSIS
-.B yaddns [-f cfg_filename] [-p pid_file] [-D]
+.B yaddns [-f cfg_filename] [-p pid_file] [-D] [-L]
 .SH DESCRIPTION
 Yaddns is a small ddns client with multiple ddns servers support (dyndns.org, no-ip, ovh, changeip, dyndns.it, ...) and a high flexibility.
 .SH OPTIONS
@@ -18,6 +18,9 @@ PID file to be used
 .TP
 \fB-D\fR, \fB--daemonize\fR
 Daemonize yaddns
+.TP
+\fB-L\fR, \fB--use-syslog\fR
+Use this option to send log messages to the syslog instead of stdout. If you daemonize yaddns, implicitly you use this option and log messages will be sent to syslog.
 .TP
 \fB-h\fR, \fB--help\fR
 Display the help

@@ -460,7 +460,7 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
                    && (timeofday.tv_sec - request->last_pending_action.tv_sec
                        >= REQUEST_PENDING_ACTION_TIMEOUT))
                 {
-                        log_notice("Pending request on %s:%d timeout (> %ds)",
+                        log_debug("Pending request on %s:%d timeout (> %ds)",
                                    request->host.addr, request->host.port,
                                    REQUEST_PENDING_ACTION_TIMEOUT);
 

@@ -23,6 +23,7 @@
 #include <netinet/in.h>
 
 #include "list.h"
+#include "util.h"
 
 #define REQUEST_DATA_MAX_SIZE       512
 
@@ -36,6 +37,25 @@
 #define REQ_ERR_CONNECT_TIMEOUT     3
 #define REQ_ERR_RESPONSE_TIMEOUT    4
 #define REQ_ERR_SENDING_TIMEOUT     5
+
+static inline const char *strreqerr(unsigned int req_err)
+{
+        const char *req_err_str[] = {
+                "Unknown error",
+                "System error",
+                "Connection has failed",
+                "Connection timeout",
+                "Receive timeout",
+                "Send timeout",
+        };
+
+        if(req_err >= ARRAY_SIZE(req_err_str))
+        {
+                req_err = 0;
+        }
+
+        return req_err_str[req_err];
+}
 
 /*
  * This module is for helping send an request and receive
@@ -96,7 +116,7 @@ struct request {
                 FSResponseReceived,
                 FSFinished,
         } state;
-        int errcode;
+        unsigned int errcode;
 	struct timeval last_pending_action;
         struct list_head list;
 };

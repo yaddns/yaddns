@@ -158,7 +158,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
         struct service *service = NULL;
 
         int c, ind;
-        char short_options[] = "vhlf:p:D";
+        char short_options[] = "vhlf:p:DL";
         struct option long_options [] = {
                 {"version", no_argument, 0, 'v' },
                 {"help", no_argument, 0, 'h' },
@@ -166,7 +166,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                 {"daemonize", no_argument, 0, 'D' },
                 {"cfg", required_argument, 0, 'f' },
                 {"pid-file", required_argument, 0, 'p' },
-                {"daemonize", required_argument, 0, 'D' },
+                {"use-syslog", no_argument, 0, 'L' },
                 {0, 0, 0, 0 }
         };
 
@@ -184,6 +184,7 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
                         printf(" -f, --cfg=FILE\t\tConfig file to be used\n");
                         printf(" -p, --pid-file=FILE\tPID file to be used\n");
                         printf(" -D, --daemonize\tDaemonize yaddns\n");
+                        printf(" -L, --use-syslog\tSend log messages to syslog instead of stdout.\n");
                         printf(" -h, --help\t\tDisplay this help\n");
                         printf(" -l, --list-service\tDisplay the "
                                "list of available services\n");
@@ -205,6 +206,10 @@ int config_parse(struct cfg *cfg, int argc, char **argv)
 
                 case 'D':
                         cfg->daemonize = 1;
+                        break;
+
+                case 'L':
+                        cfg->use_syslog = 1;
                         break;
 
                 case 'p':
@@ -535,6 +540,7 @@ void config_print(struct cfg *cfg)
         printf(" cfg file = '%s'\n", cfgstr_get(&(cfg->cfgfile)));
         printf(" pid file = '%s'\n", cfgstr_get(&(cfg->pidfile)));
         printf(" daemonize = '%d'\n", cfg->daemonize);
+        printf(" use syslog = '%d'\n", cfg->use_syslog);
         printf(" wan ifname = '%s'\n", cfgstr_get(&(cfg->wan_ifname)));
         printf(" wan mode = '%d'\n", cfg->wan_cnt_type);
 
@@ -565,6 +571,7 @@ void config_move(struct cfg *cfgsrc, struct cfg *cfgdst)
         cfgstr_move(&(cfgsrc->cfgfile), &(cfgdst->cfgfile));
         cfgstr_move(&(cfgsrc->pidfile), &(cfgdst->pidfile));
         cfgdst->daemonize = cfgsrc->daemonize;
+        cfgdst->use_syslog = cfgsrc->use_syslog;
 
         /* myip cfg */
         cfgstr_move(&(cfgsrc->myip.host), &(cfgdst->myip.host));

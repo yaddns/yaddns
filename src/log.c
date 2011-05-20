@@ -8,7 +8,7 @@ static int use_syslog = 0;
 
 void log_open(const struct cfg *cfg)
 {
-	use_syslog = cfg->daemonize;
+        use_syslog = (cfg->daemonize || cfg->use_syslog);
 
 	if(use_syslog)
 	{

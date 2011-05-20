@@ -23,7 +23,7 @@ struct list_head account_list;
 static void account_reqhook_readresponse(struct account *account,
                                          struct request_buff *buff);
 static void account_reqhook_error(struct account *account,
-                                  int errcode);
+                                  unsigned int errcode);
 static void account_reqhook(struct request *request, void *data);
 
 /*
@@ -86,12 +86,12 @@ static void account_reqhook_readresponse(struct account *account,
 }
 
 static void account_reqhook_error(struct account *account,
-                                  int errcode)
+                                  unsigned int errcode)
 {
         account->status = ASError;
-        log_error("account '%s' update failed (errcode=%d)"
-                  " => freeze_time=%d",
-                  cfgstr_get(&(account->cfg->name)), errcode,
+        log_error("account '%s' update failed (%s). Retry in %d seconds.",
+                  cfgstr_get(&(account->cfg->name)),
+                  strreqerr(errcode),
                   REQ_SLEEPTIME_ON_ERROR);
 
         account->freezed = 1;
