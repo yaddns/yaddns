@@ -60,7 +60,7 @@ static void account_reqhook_readresponse(struct account *account,
 
                 account->status = ASOk;
                 account->updated = 1;
-                account->last_update.tv_sec = timeofday.tv_sec;
+                account->last_update.tv_sec = util_getuptime();
         }
         else
         {
@@ -78,7 +78,7 @@ static void account_reqhook_readresponse(struct account *account,
                 if(report.rcmd_freeze)
                 {
                         account->freezed = 1;
-                        account->freeze_time.tv_sec = timeofday.tv_sec;
+                        account->freeze_time.tv_sec = util_getuptime();
                         account->freeze_interval.tv_sec =
                                 report.rcmd_freezetime;
                 }
@@ -95,7 +95,7 @@ static void account_reqhook_error(struct account *account,
                   REQ_SLEEPTIME_ON_ERROR);
 
         account->freezed = 1;
-        account->freeze_time.tv_sec = timeofday.tv_sec;
+        account->freeze_time.tv_sec = util_getuptime();
         account->freeze_interval.tv_sec = REQ_SLEEPTIME_ON_ERROR;
 }
 
@@ -148,6 +148,7 @@ void account_ctl_manage(void)
         struct request_opt req_opt;
         char buf_wanip[32];
         struct account *account = NULL;
+        time_t uptime = util_getuptime();
 
         /* transform wan ip raw in ascii char */
         if(!inet_ntop(AF_INET, &wanip, buf_wanip, sizeof(buf_wanip)))
@@ -163,7 +164,7 @@ void account_ctl_manage(void)
                 /* unfreeze account ? */
                 if(account->freezed)
                 {
-                        if(timeofday.tv_sec - account->freeze_time.tv_sec
+                        if(uptime - account->freeze_time.tv_sec
                            >= account->freeze_interval.tv_sec)
                         {
                                 /* unfreeze ! */
@@ -180,13 +181,12 @@ void account_ctl_manage(void)
                 }
 
                 if(account->updated
-                   && timeofday.tv_sec - account->last_update.tv_sec
-                   >= 2419200)
+                   && uptime - account->last_update.tv_sec >= 2419200)
                 {
                         /*
-                         * 28 days after last update, we need to send an updatepkt
-                         * otherwise dyndns server don't know we are still alive
-                         * and desactive the account.
+                         * 28 days after last update, we need to send an
+                         * updatepkt otherwise dyndns server desactive
+                         * the account because he don't know we are still alive
                          */
                         log_notice("re-update service after 28 beautiful days");
                         account->updated = 0;

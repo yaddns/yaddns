@@ -23,7 +23,6 @@ static volatile sig_atomic_t reloadconf = 0;
 static volatile sig_atomic_t wakeup = 0;
 static volatile sig_atomic_t unfreeze = 0;
 
-struct timeval timeofday = {0, 0};
 struct in_addr wanip;
 short int have_wanip = 0;
 
@@ -293,9 +292,6 @@ int main(int argc, char **argv)
                 max_fd = 0;
 		FD_ZERO(&readset);
                 FD_ZERO(&writeset);
-
-                /* get current time */
-                util_getuptime(&timeofday);
 
                 /* manage wan ip address */
                 wanip_manage(&cfg);

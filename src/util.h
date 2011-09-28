@@ -51,9 +51,9 @@
 extern int util_base64_encode(const char *src, char **output, size_t *output_size);
 
 /*
- * Get system uptime
+ * Get system uptime in seconds
  */
-extern void util_getuptime(struct timeval *tv);
+extern time_t util_getuptime(void);
 
 /*
  * Get ip address of an interface

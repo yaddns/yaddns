@@ -17,9 +17,6 @@
 #include "log.h"
 #include "util.h"
 
-/* extern variables */
-extern struct timeval timeofday;
-
 /* decs public variables */
 struct list_head request_list;
 
@@ -151,7 +148,7 @@ static void request_connect(struct request *request)
                         {
                                 request->state = FSConnecting;
                                 request->last_pending_action.tv_sec =
-                                        timeofday.tv_sec;
+                                        util_getuptime();
                                 break;
                         }
 
@@ -268,13 +265,13 @@ static void request_process_send(struct request *request)
         if(request->buff.data_ack == request->buff.data_size)
         {
                 request->state = FSWaitingResponse;
-                request->last_pending_action.tv_sec = timeofday.tv_sec;
         }
         else
         {
                 request->state = FSSending;
-                request->last_pending_action.tv_sec = timeofday.tv_sec;
         }
+
+        request->last_pending_action.tv_sec = util_getuptime();
 
         return;
 }
@@ -437,6 +434,7 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
 {
         struct request *request = NULL,
                 *safe = NULL;
+        time_t uptime = util_getuptime();
 
         log_debug("--------------------- processfds ---------------------");
 
@@ -457,7 +455,7 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
                 if((request->state == FSConnecting
                     || request->state == FSWaitingResponse
                     || request->state == FSSending)
-                   && (timeofday.tv_sec - request->last_pending_action.tv_sec
+                   && (uptime - request->last_pending_action.tv_sec
                        >= REQUEST_PENDING_ACTION_TIMEOUT))
                 {
                         log_debug("Pending request on %s:%d timeout (> %ds)",

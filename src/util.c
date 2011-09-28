@@ -74,7 +74,7 @@ int util_base64_encode(const char *src, char **output, size_t *output_size)
 	return 0;
 }
 
-void util_getuptime(struct timeval *tv)
+time_t util_getuptime(void)
 {
 	struct timespec tp;
 
@@ -82,13 +82,10 @@ void util_getuptime(struct timeval *tv)
 	{
 		log_error("Error getting clock %s !",
                           strerror(errno));
-		tv->tv_sec = 0;
-		tv->tv_usec = 0;
-		return;
+		return 0;
 	}
 
-	tv->tv_sec = tp.tv_sec;
-	tv->tv_usec = 0;
+	return tp.tv_sec;
 }
 
 int util_getifaddr(const char *ifname, struct in_addr *addr)

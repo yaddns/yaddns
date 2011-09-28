@@ -22,7 +22,6 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 
-struct timeval timeofday;
 struct in_addr wanip;
 short int have_wanip;
 
