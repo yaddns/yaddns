@@ -1,5 +1,5 @@
 AC_PREREQ(2.62)
-AC_INIT(yaddns, 1.1-rc4, avd@patatrac.info)
+AC_INIT(yaddns, 1.1-rc5, avd@patatrac.info)
 AM_INIT_AUTOMAKE([foreign])
 
 sinclude(m4/ax_cflags_gcc_option.m4)
