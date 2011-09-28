@@ -56,7 +56,7 @@ extern void account_ctl_cleanup(void);
  * - unfreeze account if freeze time is over
  * ...
  */
-extern void account_ctl_manage(void);
+extern void account_ctl_manage(const struct cfg *cfg);
 
 /* set not updated all accounts
  */

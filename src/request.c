@@ -360,10 +360,7 @@ int request_send(struct request_host *host,
         /* request options */
         if(opt != NULL)
         {
-                if(opt->mask & REQ_OPT_BIND_ADDR)
-                {
-                        request->opt.bind_addr = opt->bind_addr;
-                }
+                memcpy(&(request->opt), opt, sizeof(request->opt));
         }
 
         /* open socket */

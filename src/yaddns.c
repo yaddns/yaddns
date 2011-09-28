@@ -297,7 +297,7 @@ int main(int argc, char **argv)
                 wanip_manage(&cfg);
 
                 /* manage accounts */
-                account_ctl_manage();
+                account_ctl_manage(&cfg);
 
                 /* select request candidate fds */
                 request_ctl_selectfds(&readset, &writeset, &max_fd);

@@ -138,14 +138,16 @@ void account_ctl_cleanup(void)
  *    otherwise dyndns server don't know we are still alive...;
  * - if get wan ip addr, launch update procedure for accounts not updated;
  */
-void account_ctl_manage(void)
+void account_ctl_manage(const struct cfg *cfg)
 {
         struct request_host req_host;
         struct request_ctl req_ctl = {
                 .hook_func = account_reqhook,
         };
         struct request_buff req_buff;
-        struct request_opt req_opt;
+        struct request_opt req_opt = {
+                .mask = 0,
+        };
         char buf_wanip[32];
         struct account *account = NULL;
         time_t uptime = util_getuptime();
@@ -221,8 +223,11 @@ void account_ctl_manage(void)
                         }
 
                         /* req opt */
-                        req_opt.mask = REQ_OPT_BIND_ADDR;
-                        req_opt.bind_addr = wanip;
+                        if(cfg->wan_cnt_type == wan_cnt_direct)
+                        {
+                                req_opt.mask = REQ_OPT_BIND_ADDR;
+                                req_opt.bind_addr = wanip;
+                        }
 
                         /* send request */
                         if(request_send(&req_host, &req_ctl,
