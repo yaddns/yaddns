@@ -10,6 +10,7 @@ yaddns 1.1:
           update procedure for the removed account.
         * fix buffer overread in base64_encode function
         * implement unit tests 
+	* add -L, --use-syslog option
 
 yaddns 1.0:
 	* indirect wan ip address retrieve with "myip" http service
