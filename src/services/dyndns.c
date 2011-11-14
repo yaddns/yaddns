@@ -145,14 +145,14 @@ static struct {
           .unified_rc = up_server_error,
           .lock = 0,
           .freeze = 1,
-          .freezetime = 3600,
+          .freezetime = 1800,
         },
 	{ .code = "911",
           .text = "911 error encountered.",
           .unified_rc = up_server_error,
           .lock = 0,
           .freeze = 1,
-          .freezetime = 3600,
+          .freezetime = 1800,
         },
 	{ NULL,	NULL, 0, 0, 0, 0 }
 };
