@@ -50,54 +50,42 @@
  *  Log critical message
  */
 #define log_critical(fmt, ...)                                          \
-	do {                                                            \
-		log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt) "\n",  \
-                       "--- CRITICAL ---", __func__, ##__VA_ARGS__);	\
-	} while (0)
+        log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt) "\n",          \
+               "--- CRITICAL ---", __func__, ##__VA_ARGS__)
 
 /*
  *  Log error message
  */
 #define log_error(fmt, ...)                                             \
-	do {                                                            \
-		log_it(LOG_ERR, COLOR_RED("%s - " fmt) "\n",            \
-                       "--- ERROR ---", ##__VA_ARGS__);                 \
-	} while (0)
+        log_it(LOG_ERR, COLOR_RED("%s - " fmt) "\n",                    \
+               "--- ERROR ---", ##__VA_ARGS__)
 
 /*
  *  Log warning message
  */
 #define log_warning(fmt, ...)                                           \
-	do {                                                            \
-                log_it(LOG_WARNING, COLOR_PURPLE("%s - " fmt) "\n",     \
-                       "--- warning ---", ##__VA_ARGS__);               \
-	} while (0)
+        log_it(LOG_WARNING, COLOR_PURPLE("%s - " fmt) "\n",             \
+               "--- warning ---", ##__VA_ARGS__)
 
 /*
  *  Log notice message
  */
 #define log_notice(fmt, ...)					\
-	do {							\
-		log_it(LOG_NOTICE, fmt "\n", ##__VA_ARGS__);    \
-	} while (0)
+        log_it(LOG_NOTICE, fmt "\n", ##__VA_ARGS__)
 
 /*
  *  Log info message
  */
 #define log_info(fmt, ...)					\
-	do {							\
-		log_it(LOG_INFO, fmt "\n", ##__VA_ARGS__);	\
-	} while (0)
+        log_it(LOG_INFO, fmt "\n", ##__VA_ARGS__)
 
 /*
  *  Log debug message
  */
 #ifdef DEBUG_LOG
 #define log_debug(fmt, ...)                                             \
-	do {                                                            \
-                log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt) "\n",   \
-                       "--- DEBUG ---", __func__, ##__VA_ARGS__);	\
-	} while (0)
+        log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt) "\n",           \
+               "--- DEBUG ---", __func__, ##__VA_ARGS__)
 #else
 #define log_debug(fmt, ...)
 #endif
