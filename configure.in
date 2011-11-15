@@ -41,6 +41,11 @@ if test "x$GCC" = "xyes"; then
    AX_CFLAGS_GCC_OPTION(-Wconversion)
    AX_CFLAGS_GCC_OPTION(-Wunreachable-code)
    AX_CFLAGS_GCC_OPTION(-Wformat=2)
+   AX_CFLAGS_GCC_OPTION(-Wformat-y2k)
+   AX_CFLAGS_GCC_OPTION(-Wno-format-extra-args)
+   AX_CFLAGS_GCC_OPTION(-Wno-format-zero-length)
+   AX_CFLAGS_GCC_OPTION(-Wformat-nonliteral)
+   AX_CFLAGS_GCC_OPTION(-Wformat-security)
 fi
 
 if test "x$enable_debug" = "xyes"; then
