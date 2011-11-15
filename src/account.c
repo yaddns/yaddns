@@ -56,9 +56,9 @@ static void account_reqhook_readresponse(struct account *account,
         log_debug("Service %s (account '%s') return=%s (%s), code=%d",
                   account->def->name,
                   cfgstr_get(&(account->cfg->name)),
-                  report->proprio_return,
-                  report->proprio_return_info,
-                  report->code);
+                  report.proprio_return,
+                  report.proprio_return_info,
+                  report.code);
                 
         if(report.code == up_success)
         {
@@ -73,8 +73,8 @@ static void account_reqhook_readresponse(struct account *account,
         {
                 log_notice("Update failed for account '%s' (%s, %s)",
                            cfgstr_get(&(account->cfg->name)),
-                           report->proprio_return,
-                           report->proprio_return_info);
+                           report.proprio_return,
+                           report.proprio_return_info);
 
                 account->status = ASError;
 
