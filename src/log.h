@@ -23,8 +23,6 @@
 
 #include "config.h"
 
-#define EOL "\n"
-
 /* colors for VT102 terminal */
 #define COLOR_ESCAPE		"\033"
 
@@ -53,7 +51,7 @@
  */
 #define log_critical(fmt, ...)                                          \
 	do {                                                            \
-		log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt EOL),   \
+		log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt) "\n",  \
                        "--- CRITICAL ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 
@@ -62,7 +60,7 @@
  */
 #define log_error(fmt, ...)                                             \
 	do {                                                            \
-		log_it(LOG_ERR, COLOR_RED("%s - " fmt EOL),		\
+		log_it(LOG_ERR, COLOR_RED("%s - " fmt) "\n",            \
                        "--- ERROR ---", ##__VA_ARGS__);                 \
 	} while (0)
 
@@ -71,7 +69,7 @@
  */
 #define log_warning(fmt, ...)                                           \
 	do {                                                            \
-                log_it(LOG_WARNING, COLOR_PURPLE("%s - " fmt EOL),      \
+                log_it(LOG_WARNING, COLOR_PURPLE("%s - " fmt) "\n",     \
                        "--- warning ---", ##__VA_ARGS__);               \
 	} while (0)
 
@@ -80,7 +78,7 @@
  */
 #define log_notice(fmt, ...)					\
 	do {							\
-		log_it(LOG_NOTICE, fmt EOL, ##__VA_ARGS__);     \
+		log_it(LOG_NOTICE, fmt "\n", ##__VA_ARGS__);    \
 	} while (0)
 
 /*
@@ -88,7 +86,7 @@
  */
 #define log_info(fmt, ...)					\
 	do {							\
-		log_it(LOG_INFO, fmt EOL, ##__VA_ARGS__);	\
+		log_it(LOG_INFO, fmt "\n", ##__VA_ARGS__);	\
 	} while (0)
 
 /*
@@ -97,7 +95,7 @@
 #ifdef DEBUG_LOG
 #define log_debug(fmt, ...)                                             \
 	do {                                                            \
-                log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt EOL),    \
+                log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt) "\n",   \
                        "--- DEBUG ---", __func__, ##__VA_ARGS__);	\
 	} while (0)
 #else
