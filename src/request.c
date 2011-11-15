@@ -296,8 +296,8 @@ static void request_process_recv(struct request *request)
 
         /* put the \0 at end */
         request->buff.data[n] = '\0';
-        log_debug("&request:%p, recv %u bytes: %s",
-                  request, (size_t)n, request->buff.data);
+        log_debug("&request:%p, recv on %d (%u bytes): %s",
+                  request, request->s, (size_t)n, request->buff.data);
 
         request->buff.data_size = (size_t)n;
         request->buff.data_ack = (size_t)n;
