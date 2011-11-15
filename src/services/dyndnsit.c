@@ -42,7 +42,7 @@ static int ddns_write(const struct cfg_account *cfg,
                       struct request_buff *buff);
 
 static int ddns_read(struct request_buff *buff,
-                     struct upreply_report *report);
+                     struct rc_report *report);
 
 struct service dyndnsit_service = {
 	.name = DDNS_NAME,
@@ -53,105 +53,63 @@ struct service dyndnsit_service = {
 };
 
 static struct {
-	const char *code;
-	const char *text;
-	int unified_rc;
-	int lock;
-	int freeze;
-	int freezetime;
+	const char *propcode;
+	const char *propcode_info;
+	int code;
 } rc_map[] = {
-	{ .code = "badauth",
-	  .text = "Bad authorization (username or password).",
-	  .unified_rc = up_account_loginpass_error,
-	  .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "badauth",
+	  .propcode_info = "Bad authorization (username or password).",
+	  .code = up_account_loginpass_error,
         },
-	{ .code = "badsys",
-          .text = "The system parameter given was not valid.",
-          .unified_rc = up_syntax_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "badsys",
+          .propcode_info = "The system parameter given was not valid.",
+          .code = up_syntax_error,
         },
-	{ .code = "badagent",
-          .text = "The useragent your client sent has been  blocked at the access level.",
-          .unified_rc = up_syntax_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "badagent",
+          .propcode_info = "The useragent your client sent has been  blocked at the access level.",
+          .code = up_syntax_error,
         },
-	{ .code = "good",
-          .text = "Update good and successful, IP updated.",
-          .unified_rc = up_success,
-          .lock = 0,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "good",
+          .propcode_info = "Update good and successful, IP updated.",
+          .code = up_success,
         },
-	{ .code = "nochg",
-          .text = "No changes. IP updated.",
-          .unified_rc = up_success,
-          .lock = 0,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "nochg",
+          .propcode_info = "No changes. IP updated.",
+          .code = up_success,
         },
-	{ .code = "nohost",
-          .text = "The hostname specified does not exist.",
-          .unified_rc = up_account_hostname_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "nohost",
+          .propcode_info = "The hostname specified does not exist.",
+          .code = up_account_hostname_error,
         },
-	{ .code = "!donator",
-          .text = "The offline setting was set, when the user is not a donator.",
-          .unified_rc = up_account_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "!donator",
+          .propcode_info = "The offline setting was set, when the user is not a donator.",
+          .code = up_account_error,
         },
-	{ .code = "!yours",
-          .text = "The hostname specified exists, but not under the username currently being used.",
-          .unified_rc = up_account_hostname_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "!yours",
+          .propcode_info = "The hostname specified exists, but not under the username currently being used.",
+          .code = up_account_hostname_error,
         },
-	{ .code = "abuse",
-          .text = "The hostname specified is blocked for abuse",
-	  .unified_rc = up_account_abuse_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "abuse",
+          .propcode_info = "The hostname specified is blocked for abuse",
+	  .code = up_account_abuse_error,
         },
-	{ .code = "notfqdn",
-          .text = "No hosts are given.",
-          .unified_rc = up_account_hostname_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "notfqdn",
+          .propcode_info = "No hosts are given.",
+          .code = up_account_hostname_error,
         },
-	{ .code = "numhost",
-          .text = "Too many or too few hosts found.",
-          .unified_rc = up_account_hostname_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "numhost",
+          .propcode_info = "Too many or too few hosts found.",
+          .code = up_account_hostname_error,
         },
-	{ .code = "dnserr",
-          .text = "DNS error encountered.",
-          .unified_rc = up_server_error,
-          .lock = 0,
-          .freeze = 1,
-          .freezetime = 3600,
+	{ .propcode = "dnserr",
+          .propcode_info = "DNS error encountered.",
+          .code = up_server_error,
         },
-	{ .code = "911",
-          .text = "911 error encountered.",
-          .unified_rc = up_server_error,
-          .lock = 0,
-          .freeze = 1,
-          .freezetime = 3600,
+	{ .propcode = "911",
+          .propcode_info = "911 error encountered.",
+          .code = up_server_error,
         },
-	{ NULL,	NULL, 0, 0, 0, 0 }
+	{ NULL,	NULL, 0, }
 };
 
 static int ddns_write(const struct cfg_account *cfg,
@@ -201,65 +159,54 @@ static int ddns_write(const struct cfg_account *cfg,
 }
 
 static int ddns_read(struct request_buff *buff,
-                     struct upreply_report *report)
+                     struct rc_report *report)
 {
-	int ret = 0;
-	char *ptr = NULL;
-	int f = 0;
+        char *str = NULL, *token = NULL, *saveptr = NULL;
+	int found = 0;
 	int n = 0;
 
-	report->code = up_unknown_error;
+        for(str = buff->data;; str = NULL)
+        {
+               token = strtok_r(str, "\n", &saveptr);
+               if(token == NULL)
+               {
+                       break;
+               }
 
-	if(strstr(buff->data, "HTTP/1.1 200 OK")
-           || strstr(buff->data, "HTTP/1.0 200 OK"))
-	{
-		(void) strtok(buff->data, "\n");
-		while (!f && (ptr = strtok(NULL, "\n")) != NULL)
-		{
-			for (n = 0; rc_map[n].code != NULL; n++)
-			{
-				if (strstr(ptr, rc_map[n].code))
-				{
-					report->code = rc_map[n].unified_rc;
+               for (n = 0; rc_map[n].propcode != NULL; ++n)
+               {
+                       if (strstr(token, rc_map[n].propcode) != NULL)
+                       {
+                               report->code = rc_map[n].code;
 
-					snprintf(report->custom_rc,
-                                                 sizeof(report->custom_rc),
-                                                 "%s",
-                                                 rc_map[n].code);
+                               snprintf(report->proprio_return,
+                                        sizeof(report->proprio_return),
+                                        "%s", rc_map[n].propcode);
 
-					snprintf(report->custom_rc_text,
-                                                 sizeof(report->custom_rc_text),
-                                                 "%s",
-                                                 rc_map[n].text);
+                               snprintf(report->proprio_return_info,
+                                        sizeof(report->proprio_return_info),
+                                        "%s", rc_map[n].propcode_info);
 
-					report->rcmd_lock = rc_map[n].lock;
-					report->rcmd_freeze = rc_map[n].freeze;
-					report->rcmd_freezetime = rc_map[n].freezetime;
+                               found = 1;
+                               break;
+                       }
+               }
+        }
 
-					f = 1;
-					break;
-				}
-			}
-		}
+        if(!found)
+        {
+                log_error("Unknown return message received.");
 
-		if (!f)
-		{
-			log_notice("Unknown return message received.");
-			report->rcmd_lock = 1;
-		}
-	}
-	else if (strstr(buff->data, "401 Authorization Required"))
-	{
-		report->code = up_account_error;
-		report->rcmd_freeze = 1;
-		report->rcmd_freezetime = 3600;
-	}
-	else
-	{
-		report->code = up_server_error;
-		report->rcmd_freeze = 1;
-		report->rcmd_freezetime = 3600;
-	}
+                report->code = up_unknown_error;
 
-	return ret;
+                snprintf(report->proprio_return,
+                         sizeof(report->proprio_return),
+                         "unknown");
+
+                snprintf(report->proprio_return_info,
+                         sizeof(report->proprio_return_info),
+                         "Unknown return message received");
+        }
+
+	return 0;
 }

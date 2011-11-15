@@ -42,7 +42,7 @@ static int ddns_write(const struct cfg_account *cfg,
                       struct request_buff *buff);
 
 static int ddns_read(struct request_buff *buff,
-                     struct upreply_report *report);
+                     struct rc_report *report);
 
 struct service changeip_service = {
 	.name = DDNS_NAME,
@@ -50,24 +50,6 @@ struct service changeip_service = {
 	.portserv = DDNS_PORT,
 	.make_query = ddns_write,
 	.read_resp = ddns_read
-};
-
-static struct {
-	const char *code;
-	const char *text;
-	int unified_rc;
-	int lock;
-	int freeze;
-	int freezetime;
-} rc_map[] = {
-	{ .code = "200",
-	  .text = "Successful Update",
-	  .unified_rc = up_success,
-	  .lock = 0,
-          .freeze = 0,
-          .freezetime = 0,
-        },
-	{ NULL,	NULL, 0, 0, 0, 0 }
 };
 
 static int ddns_write(const struct cfg_account *cfg,
@@ -116,65 +98,47 @@ static int ddns_write(const struct cfg_account *cfg,
 }
 
 static int ddns_read(struct request_buff *buff,
-                     struct upreply_report *report)
+                     struct rc_report *report)
 {
-	int ret = 0;
-	char *ptr = NULL;
-	int f = 0;
-	int n = 0;
-
-	report->code = up_unknown_error;
-
-	if(strstr(buff->data, "HTTP/1.1 200 Successful Update")
-           || strstr(buff->data, "HTTP/1.0 200 Successful Update"))
+        if(strstr(buff->data, "200 Successful Update"))
 	{
-		(void) strtok(buff->data, "\n");
-		while (!f && (ptr = strtok(NULL, "\n")) != NULL)
-		{
-			for (n = 0; rc_map[n].code != NULL; n++)
-			{
-				if (strstr(ptr, rc_map[n].code))
-				{
-					report->code = rc_map[n].unified_rc;
+                report->code = up_success;
 
-					snprintf(report->custom_rc,
-								sizeof(report->custom_rc),
-								"%s",
-								rc_map[n].code);
+                snprintf(report->proprio_return,
+                         sizeof(report->proprio_return),
+                         "good");
 
-					snprintf(report->custom_rc_text,
-								sizeof(report->custom_rc_text),
-								"%s",
-								rc_map[n].text);
+                snprintf(report->proprio_return_info,
+                         sizeof(report->proprio_return_info),
+                         "Update good and successful, IP updated.");
+        }
+        else if(strstr(buff->data, "401 Access Denied")
+                || strstr(buff->data, "401 Unauthorized"))
+        {
+                report->code = up_account_error;
 
-					report->rcmd_lock = rc_map[n].lock;
-					report->rcmd_freeze = rc_map[n].freeze;
-					report->rcmd_freezetime = rc_map[n].freezetime;
+                snprintf(report->proprio_return,
+                         sizeof(report->proprio_return),
+                         "badauth");
 
-					f = 1;
-					break;
-				}
-			}
-		}
+                snprintf(report->proprio_return_info,
+                         sizeof(report->proprio_return_info),
+                         "Bad authorization (username or password).");
+        }
+        else
+        {
+                log_error("Unknown return message received.");
 
-		if (!f)
-		{
-			log_notice("Unknown return message received.");
-			report->rcmd_lock = 1;
-		}
-	}
-	else if (strstr(buff->data, "401 Access Denied"))
-	{
-		report->code = up_account_error;
-		report->rcmd_freeze = 1;
-		report->rcmd_freezetime = 3600;
-	}
-	else
-	{
-		report->code = up_server_error;
-		report->rcmd_freeze = 1;
-		report->rcmd_freezetime = 3600;
-	}
+                report->code = up_unknown_error;
 
-	return ret;
+                snprintf(report->proprio_return,
+                         sizeof(report->proprio_return),
+                         "unknown");
+
+                snprintf(report->proprio_return_info,
+                         sizeof(report->proprio_return_info),
+                         "Unknown return message received");
+        }
+
+	return 0;
 }

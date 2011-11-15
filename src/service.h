@@ -25,7 +25,7 @@
 #include "config.h"
 #include "request.h"
 
-struct upreply_report {
+struct rc_report {
 	enum {
 		up_success,
 		up_unknown_error,
@@ -36,11 +36,8 @@ struct upreply_report {
 		up_account_abuse_error,
 		up_server_error,
 	} code;
-	char custom_rc[16]; /* small return code receive by server */
-	char custom_rc_text[64]; /* explanation of return code in english */
-	int rcmd_lock; /* lock or not ? */
-	int rcmd_freeze; /* freeze or not ? */
-	int rcmd_freezetime; /* freezetime recommendation in seconds */
+	char proprio_return[16];      /* proprietary return code */
+	char proprio_return_info[64]; /* explanation about proprio return */
 };
 
 struct service {
@@ -53,7 +50,7 @@ struct service {
                            const char const *newwanip,
                            struct request_buff *buff);
 	int (*read_resp) (struct request_buff *buff,
-                          struct upreply_report *report);
+                          struct rc_report *report);
 	struct list_head list;
 };
 

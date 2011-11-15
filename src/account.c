@@ -16,6 +16,9 @@
 /* sleep REQ_SLEEPTIME_ON_ERROR when got an request error */
 #define REQ_SLEEPTIME_ON_ERROR 5
 
+/* sleep FREEZETIME_ON_TEMP_ERROR when received temporary error from service */
+#define FREEZETIME_ON_TEMP_ERROR 1800
+
 /* decs public variables */
 struct list_head account_list;
 
@@ -33,13 +36,10 @@ static void account_reqhook_readresponse(struct account *account,
                                          struct request_buff *buff)
 {
         int ret;
-        struct upreply_report report = {
+        struct rc_report report = {
                 .code = up_unknown_error,
-                .custom_rc = "",
-                .custom_rc_text = "",
-                .rcmd_lock = 0,
-                .rcmd_freeze = 0,
-                .rcmd_freezetime = 0,
+                .proprio_return = "unknown",
+                .proprio_return_info = "Unknown return",
         };
 
         ret = account->def->read_resp(buff,
@@ -52,10 +52,17 @@ static void account_reqhook_readresponse(struct account *account,
                 account->status = ASError;
                 return;
         }
+
+        log_debug("Service %s (account '%s') return=%s (%s), code=%d",
+                  account->def->name,
+                  cfgstr_get(&(account->cfg->name)),
+                  report->proprio_return,
+                  report->proprio_return_info,
+                  report->code);
                 
         if(report.code == up_success)
         {
-                log_info("update success for account '%s'",
+                log_info("Update success for account '%s'",
                          cfgstr_get(&(account->cfg->name)));
 
                 account->status = ASOk;
@@ -64,23 +71,30 @@ static void account_reqhook_readresponse(struct account *account,
         }
         else
         {
-                log_notice("update failed for account '%s' (%d: %s - %s)"
-                           " => freeze_time=%d, locked=%d",
+                log_notice("Update failed for account '%s' (%s, %s)",
                            cfgstr_get(&(account->cfg->name)),
-                           report.code,
-                           report.custom_rc,
-                           report.custom_rc_text,
-                           report.rcmd_freeze ? report.rcmd_freezetime : 0,
-                           report.rcmd_lock);
+                           report->proprio_return,
+                           report->proprio_return_info);
 
                 account->status = ASError;
-                account->locked = report.rcmd_lock;
-                if(report.rcmd_freeze)
+
+                if(report.code == up_server_error
+                   || report.code == up_unknown_error)
                 {
+                        log_notice("Freeze account '%s' for %d sec.",
+                                   cfgstr_get(&(account->cfg->name)),
+                                   FREEZETIME_ON_TEMP_ERROR);
+
                         account->freezed = 1;
                         account->freeze_time.tv_sec = util_getuptime();
                         account->freeze_interval.tv_sec =
-                                report.rcmd_freezetime;
+                                FREEZETIME_ON_TEMP_ERROR;
+                }
+                else
+                {
+                        log_notice("Lock account '%s'",
+                                   cfgstr_get(&(account->cfg->name)));
+                        account->locked = 1;
                 }
         }
 }

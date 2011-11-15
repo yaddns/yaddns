@@ -42,7 +42,7 @@ static int ddns_write(const struct cfg_account *cfg,
                       struct request_buff *buff);
 
 static int ddns_read(struct request_buff *buff,
-                     struct upreply_report *report);
+                     struct rc_report *report);
 
 struct service noip_service = {
 	.name = DDNS_NAME,
@@ -53,71 +53,44 @@ struct service noip_service = {
 };
 
 static struct {
-	const char *code;
-	const char *text;
-	int unified_rc;
-	int lock;
-	int freeze;
-	int freezetime;
+	const char *propcode;
+	const char *propcode_info;
+	int code;
 } rc_map[] = {
-	{ .code = "badauth",
-          .text = "Invalid username password combination.",
-          .unified_rc = up_account_loginpass_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "badauth",
+          .propcode_info = "Invalid username password combination.",
+          .code = up_account_loginpass_error,
         },
-	{ .code = "badagent",
-          .text = "Client disabled.",
-          .unified_rc = up_syntax_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "badagent",
+          .propcode_info = "Client disabled.",
+          .code = up_syntax_error,
         },
-	{ .code = "good",
-          .text = "DNS hostname update successful.",
-          .unified_rc = up_success,
-          .lock = 0,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "good",
+          .propcode_info = "DNS hostname update successful.",
+          .code = up_success,
         },
-	{ .code = "nochg",
-          .text = "IP address is current, no update performed.",
-          .unified_rc = up_success,
-          .lock = 0,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "nochg",
+          .propcode_info = "IP address is current, no update performed.",
+          .code = up_success,
         },
-	{ .code = "nohost",
-          .text = "The hostname specified does not exist.",
-          .unified_rc = up_account_hostname_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "nohost",
+          .propcode_info = "The hostname specified does not exist.",
+          .code = up_account_hostname_error,
         },
-	{ .code = "!donator",
-          .text = "An update request was sent including a feature that is"
+	{ .propcode = "!donator",
+          .propcode_info = "An update request was sent including a feature that is"
           " not available to that particular user such as offline options.",
-          .unified_rc = up_account_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+          .code = up_account_error,
         },
-	{ .code = "abuse",
-          .text = "Username is blocked due to abuse.",
-	  .unified_rc = up_account_abuse_error,
-          .lock = 1,
-          .freeze = 0,
-          .freezetime = 0,
+	{ .propcode = "abuse",
+          .propcode_info = "Username is blocked due to abuse.",
+	  .code = up_account_abuse_error,
         },
-	{ .code = "911",
-          .text = "A fatal error on our side such as a database outage.",
-          .unified_rc = up_server_error,
-          .lock = 0,
-          .freeze = 1,
-          .freezetime = 3600,
+	{ .propcode = "911",
+          .propcode_info = "A fatal error on our side such as a database outage.",
+          .code = up_server_error,
         },
-	{ NULL,	NULL, 0, 0, 0, 0 }
+	{ NULL,	NULL, 0, }
 };
 
 static int ddns_write(const struct cfg_account *cfg,
@@ -166,65 +139,54 @@ static int ddns_write(const struct cfg_account *cfg,
 }
 
 static int ddns_read(struct request_buff *buff,
-                     struct upreply_report *report)
+                     struct rc_report *report)
 {
-	int ret = 0;
-	char *ptr = NULL;
-	int f = 0;
+        char *str = NULL, *token = NULL, *saveptr = NULL;
+	int found = 0;
 	int n = 0;
 
-	report->code = up_unknown_error;
+        for(str = buff->data;; str = NULL)
+        {
+               token = strtok_r(str, "\n", &saveptr);
+               if(token == NULL)
+               {
+                       break;
+               }
 
-	if(strstr(buff->data, "HTTP/1.1 200 OK")
-           || strstr(buff->data, "HTTP/1.0 200 OK"))
-	{
-		(void) strtok(buff->data, "\n");
-		while (!f && (ptr = strtok(NULL, "\n")) != NULL)
-		{
-			for (n = 0; rc_map[n].code != NULL; n++)
-			{
-				if (strstr(ptr, rc_map[n].code))
-				{
-					report->code = rc_map[n].unified_rc;
+               for (n = 0; rc_map[n].propcode != NULL; ++n)
+               {
+                       if (strstr(token, rc_map[n].propcode) != NULL)
+                       {
+                               report->code = rc_map[n].code;
 
-					snprintf(report->custom_rc,
-                                                 sizeof(report->custom_rc),
-                                                 "%s",
-                                                 rc_map[n].code);
+                               snprintf(report->proprio_return,
+                                        sizeof(report->proprio_return),
+                                        "%s", rc_map[n].propcode);
 
-					snprintf(report->custom_rc_text,
-                                                 sizeof(report->custom_rc_text),
-                                                 "%s",
-                                                 rc_map[n].text);
+                               snprintf(report->proprio_return_info,
+                                        sizeof(report->proprio_return_info),
+                                        "%s", rc_map[n].propcode_info);
 
-					report->rcmd_lock = rc_map[n].lock;
-					report->rcmd_freeze = rc_map[n].freeze;
-					report->rcmd_freezetime = rc_map[n].freezetime;
+                               found = 1;
+                               break;
+                       }
+               }
+        }
 
-					f = 1;
-					break;
-				}
-			}
-		}
+        if(!found)
+        {
+                log_error("Unknown return message received.");
 
-		if (!f)
-		{
-			log_notice("Unknown return message received.");
-			report->rcmd_lock = 1;
-		}
-	}
-	else if (strstr(buff->data, "401 Authorization Required"))
-	{
-		report->code = up_account_error;
-		report->rcmd_freeze = 1;
-		report->rcmd_freezetime = 3600;
-	}
-	else
-	{
-		report->code = up_server_error;
-		report->rcmd_freeze = 1;
-		report->rcmd_freezetime = 3600;
-	}
+                report->code = up_unknown_error;
 
-	return ret;
+                snprintf(report->proprio_return,
+                         sizeof(report->proprio_return),
+                         "unknown");
+
+                snprintf(report->proprio_return_info,
+                         sizeof(report->proprio_return_info),
+                         "Unknown return message received");
+        }
+
+	return 0;
 }
