@@ -30,6 +30,15 @@ Display the list of available ddns service
 .TP
 \fB-V\fR, \fB--version\fR
 Display the version
+.SH SIGNALS
+\fBSIGHUP\fR
+Reload configuration
+.TP
+\fBSIGUSR1\fR
+Wake up yaddns and go proper action now
+.TP
+\fBSIGUSR1\fR
+Unfreeze services (in case of freeze following temporary dyndns server errors)
 .SH FILES
 .I /etc/yaddns.conf
 .RS

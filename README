@@ -27,7 +27,7 @@ Usage
      killall -SIGUSR1 yaddns
 
  - Unfreeze services (in case of freeze
-   following temporary dyndns server error) in runtime:
+   following temporary dyndns server errors) in runtime:
      killall -SIGUSR2 yaddns
 
 Compilation tricks for developpers
