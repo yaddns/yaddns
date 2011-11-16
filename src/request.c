@@ -175,9 +175,9 @@ static void request_process(struct request *request)
         int err;
         socklen_t errsize = sizeof(int);
 
-        switch(request->state)
+        /* first, process FSConnecting request state */
+        if(request->state == FSConnecting)
         {
-	case FSConnecting:
                 log_debug("&request:%p, FSConnecting - check connect status",
                           request);
 
@@ -189,7 +189,7 @@ static void request_process(struct request *request)
                                   strerror(errno));
                         request->state = FSError;
                         request->errcode = REQ_ERR_SYSTEM;
-                        break;
+                        return;
                 }
 
                 if(err != 0)
@@ -197,35 +197,40 @@ static void request_process(struct request *request)
                         log_error("connect(): %s", strerror(err));
                         request->state = FSError;
                         request->errcode = REQ_ERR_CONNECT_FAILED;
-                        break;
+                        return;
                 }
 
                 /* yes, we are connected ! */
                 log_debug("&request:%p, connected !", request);
                 request->state = FSConnected;
-                /* fall down */
-        case FSConnected:
-	case FSSending:
+        }
+
+        /* next, process the other states */
+        if(request->state == FSConnected
+           || request->state == FSSending)
+        {
                 log_debug("&request:%p, FSConnected or FSSending"
                           " - perform send",
                           request);
 		request_process_send(request);
-                break;
-	case FSFinished:
+        }
+        else if(request->state == FSFinished)
+        {
                 log_debug("&request:%p, FSFinished - close socket.",
                           request);
 		close(request->s);
 		request->s = -1;
-		break;
-	case FSWaitingResponse:
+        }
+        else if(request->state == FSWaitingResponse)
+        {
                 log_debug("&request:%p, FSWaitingResponse"
                           " - perform recv",
                           request);
 		request_process_recv(request);
-		break;
-	default:
-		log_error("Unknown state");
-                break;
+	}
+        else
+        {
+		log_critical("Unknown state");
 	}
 }
 
@@ -255,11 +260,11 @@ static void request_process_send(struct request *request)
 
         if((size_t)i != remain)
         {
-                log_notice("%d bytes send out of %d",
+                log_notice("%zi bytes send out of %zu",
                            i, remain);
         }
 
-        log_debug("&request:%p, sent %d bytes", request, i);
+        log_debug("&request:%p, sent %zi bytes", request, i);
 
         request->buff.data_ack += (size_t)i;
         if(request->buff.data_ack == request->buff.data_size)
@@ -296,8 +301,8 @@ static void request_process_recv(struct request *request)
 
         /* put the \0 at end */
         request->buff.data[n] = '\0';
-        log_debug("&request:%p, recv on %d (%u bytes): %s",
-                  request, request->s, (size_t)n, request->buff.data);
+        log_debug("&request:%p, recv on %d (%zi bytes): %s",
+                  request, request->s, n, request->buff.data);
 
         request->buff.data_size = (size_t)n;
         request->buff.data_ack = (size_t)n;
@@ -384,45 +389,35 @@ void request_ctl_selectfds(fd_set *readset, fd_set *writeset, int *max_fd)
 
         log_debug("--------------------- selectfds ---------------------");
 
-        list_for_each_entry(request,
-                            &(request_list), list)
+        list_for_each_entry(request, &(request_list), list)
         {
-                switch(request->state)
+                if(request->state == FSCreated)
                 {
-                case FSCreated:
-                        log_debug("&request:%p, FSCreated"
-                                  " - execute connect",
+                        log_debug("&request:%p, FSCreated - execute connect",
                                   request);
 
                         request_connect(request);
+                }
 
-                        if(request->state != FSConnecting
-                           && request->state != FSConnected)
-                        {
-                                break;
-                        }
-                case FSConnecting:
-                case FSConnected:
-                case FSSending:
+                if(request->state == FSConnecting
+                   || request->state == FSConnected
+                   || request->state == FSSending)
+                {
                         log_debug("&request:%p, FSConnect(ing|ed)|FSSending"
                                   " - FD_SET(%d, writeset)",
                                   request, request->s);
 
                         FD_SET(request->s, writeset);
                         *max_fd = MAX(request->s, *max_fd);
-
-                        break;
-                case FSWaitingResponse:
+                }
+                else if(request->state == FSWaitingResponse)
+                {
                         log_debug("&request:%p, FSWaitingForResponse"
                                   " - FD_SET(%d, readset)",
                                   request, request->s);
 
                         FD_SET(request->s, readset);
                         *max_fd = MAX(request->s, *max_fd);
-
-                        break;
-                default:
-                        break;
                 }
         }
 }
@@ -455,7 +450,7 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
                    && (uptime - request->last_pending_action.tv_sec
                        >= REQUEST_PENDING_ACTION_TIMEOUT))
                 {
-                        log_debug("Pending request on %s:%d timeout (> %ds)",
+                        log_debug("Pending request on %s:%d timeout (> %d sec)",
                                    request->host.addr, request->host.port,
                                    REQUEST_PENDING_ACTION_TIMEOUT);
 
@@ -465,12 +460,15 @@ void request_ctl_processfds(fd_set *readset, fd_set *writeset)
                         case FSConnecting:
                                 request->errcode = REQ_ERR_CONNECT_TIMEOUT;
                                 break;
+
                         case FSWaitingResponse:
                                 request->errcode = REQ_ERR_RESPONSE_TIMEOUT;
                                 break;
+
                         case FSSending:
                                 request->errcode = REQ_ERR_SENDING_TIMEOUT;
                                 break;
+
                         default:
                                 request->errcode = REQ_ERR_UNKNOWN;
                                 break;

@@ -36,8 +36,7 @@ void log_it(int priority, char const *format, ...)
 	}
 	else
 	{
-		(void)(priority);
-		vprintf(format, ap);
+		vfprintf(stdout, format, ap);
 	}
 
 	va_end(ap);

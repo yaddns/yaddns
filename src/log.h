@@ -20,52 +20,73 @@
 #define _YADDNS_LOG_H_
 
 #include <syslog.h>
+#include <stdio.h>
 
 #include "config.h"
 
 /* colors for VT102 terminal */
-#define COLOR_ESCAPE		"\033"
+#if defined(ENABLE_LOG_COLOR)
+ #define COLOR_ESCAPE		"\033"
 
-#define COLOR_RESET		COLOR_ESCAPE "[0m"
+ #define COLOR_RESET		COLOR_ESCAPE "[0m"
 
-#define COLOR_BLACK(txt)	COLOR_ESCAPE "[0;30m" txt COLOR_RESET
-#define COLOR_RED(txt)		COLOR_ESCAPE "[0;31m" txt COLOR_RESET
-#define COLOR_GREEN(txt)	COLOR_ESCAPE "[0;32m" txt COLOR_RESET
-#define COLOR_BROWN(txt)	COLOR_ESCAPE "[0;33m" txt COLOR_RESET
-#define COLOR_BLUE(txt)		COLOR_ESCAPE "[0;34m" txt COLOR_RESET
-#define COLOR_PURPLE(txt)	COLOR_ESCAPE "[0;35m" txt COLOR_RESET
-#define COLOR_CYAN(txt)		COLOR_ESCAPE "[0;36m" txt COLOR_RESET
-#define COLOR_GRAY(txt)		COLOR_ESCAPE "[0;37m" txt COLOR_RESET
+ #define COLOR_BLACK(txt)	COLOR_ESCAPE "[0;30m" txt COLOR_RESET
+ #define COLOR_RED(txt)		COLOR_ESCAPE "[0;31m" txt COLOR_RESET
+ #define COLOR_GREEN(txt)	COLOR_ESCAPE "[0;32m" txt COLOR_RESET
+ #define COLOR_BROWN(txt)	COLOR_ESCAPE "[0;33m" txt COLOR_RESET
+ #define COLOR_BLUE(txt)	COLOR_ESCAPE "[0;34m" txt COLOR_RESET
+ #define COLOR_PURPLE(txt)	COLOR_ESCAPE "[0;35m" txt COLOR_RESET
+ #define COLOR_CYAN(txt)	COLOR_ESCAPE "[0;36m" txt COLOR_RESET
+ #define COLOR_GRAY(txt)	COLOR_ESCAPE "[0;37m" txt COLOR_RESET
 
-#define COLOR_DARK_GRAY(txt)	COLOR_ESCAPE "[1;30m" txt COLOR_RESET
-#define COLOR_LIGHT_RED(txt)	COLOR_ESCAPE "[1;31m" txt COLOR_RESET
-#define COLOR_LIGHT_GREEN(txt)	COLOR_ESCAPE "[1;32m" txt COLOR_RESET
-#define COLOR_YELLOW(txt)	COLOR_ESCAPE "[1;33m" txt COLOR_RESET
-#define COLOR_LIGHT_BLUE(txt)	COLOR_ESCAPE "[1;34m" txt COLOR_RESET
-#define COLOR_LIGHT_PURPLE(txt)	COLOR_ESCAPE "[1;35m" txt COLOR_RESET
-#define COLOR_LIGHT_CYAN(txt)	COLOR_ESCAPE "[1;36m" txt COLOR_RESET
-#define COLOR_WHITE(txt)	COLOR_ESCAPE "[1;37m" txt COLOR_RESET
+ #define COLOR_DARK_GRAY(txt)	COLOR_ESCAPE "[1;30m" txt COLOR_RESET
+ #define COLOR_LIGHT_RED(txt)	COLOR_ESCAPE "[1;31m" txt COLOR_RESET
+ #define COLOR_LIGHT_GREEN(txt)	COLOR_ESCAPE "[1;32m" txt COLOR_RESET
+ #define COLOR_YELLOW(txt)	COLOR_ESCAPE "[1;33m" txt COLOR_RESET
+ #define COLOR_LIGHT_BLUE(txt)	COLOR_ESCAPE "[1;34m" txt COLOR_RESET
+ #define COLOR_LIGHT_PURPLE(txt)COLOR_ESCAPE "[1;35m" txt COLOR_RESET
+ #define COLOR_LIGHT_CYAN(txt)	COLOR_ESCAPE "[1;36m" txt COLOR_RESET
+ #define COLOR_WHITE(txt)	COLOR_ESCAPE "[1;37m" txt COLOR_RESET
+#else
+ #define COLOR_BLACK(txt) txt
+ #define COLOR_RED(txt) txt
+ #define COLOR_GREEN(txt) txt
+ #define COLOR_BROWN(txt) txt
+ #define COLOR_BLUE(txt) txt
+ #define COLOR_PURPLE(txt) txt
+ #define COLOR_CYAN(txt) txt
+ #define COLOR_GRAY(txt) txt
+
+ #define COLOR_DARK_GRAY(txt) txt
+ #define COLOR_LIGHT_RED(txt) txt
+ #define COLOR_LIGHT_GREEN(txt) txt
+ #define COLOR_YELLOW(txt) txt
+ #define COLOR_LIGHT_BLUE(txt) txt
+ #define COLOR_LIGHT_PURPLE(txt) txt
+ #define COLOR_LIGHT_CYAN(txt) txt
+ #define COLOR_WHITE(txt) txt
+#endif
 
 /*
  *  Log critical message
  */
 #define log_critical(fmt, ...)                                          \
-        log_it(LOG_CRIT, COLOR_LIGHT_RED("%s %s - " fmt) "\n",          \
-               "--- CRITICAL ---", __func__, ##__VA_ARGS__)
+        log_it(LOG_CRIT, COLOR_RED("- CRITICAL - (%s) " fmt) "\n",      \
+               __func__, ##__VA_ARGS__)
 
 /*
  *  Log error message
  */
 #define log_error(fmt, ...)                                             \
-        log_it(LOG_ERR, COLOR_RED("%s - " fmt) "\n",                    \
-               "--- ERROR ---", ##__VA_ARGS__)
+        log_it(LOG_ERR, COLOR_RED("- ERROR - " fmt) "\n",               \
+               ##__VA_ARGS__)
 
 /*
  *  Log warning message
  */
 #define log_warning(fmt, ...)                                           \
-        log_it(LOG_WARNING, COLOR_PURPLE("%s - " fmt) "\n",             \
-               "--- warning ---", ##__VA_ARGS__)
+        log_it(LOG_WARNING, COLOR_PURPLE("- WARNING - " fmt) "\n",      \
+               ##__VA_ARGS__)
 
 /*
  *  Log notice message
@@ -82,10 +103,10 @@
 /*
  *  Log debug message
  */
-#ifdef DEBUG_LOG
+#if defined(ENABLE_LOG_DEBUG)
 #define log_debug(fmt, ...)                                             \
-        log_it(LOG_DEBUG, COLOR_BLUE("%s %-22s - " fmt) "\n",           \
-               "--- DEBUG ---", __func__, ##__VA_ARGS__)
+        log_it(LOG_DEBUG, COLOR_BLUE("- DEBUG - (%s) " fmt) "\n",       \
+               __func__, ##__VA_ARGS__)
 #else
 #define log_debug(fmt, ...)
 #endif
@@ -101,7 +122,7 @@ extern void log_open( const struct cfg *cfg );
 extern void log_close( void );
 
 /*
- * log the message
+ * write log
  */
 extern void log_it(int priority, char const *format, ...);
 

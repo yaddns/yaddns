@@ -4,12 +4,13 @@ yaddns 1.1:
           Add timeout feature which abort pending request (connect(), send(), recv())
           after XX seconds.
         * add new ./configure options:
-           * --enable-debug
-           * --enable-debug-log
+		* --enable-debug
+		* --enable-log-debug
+		* --enable-log-color
         * fix segfault case if user remove account cfg and SIGHUP yaddns when doing
           update procedure for the removed account.
         * fix buffer overread in base64_encode function
-        * implement unit tests 
+        * implement unit tests
 	* add -L, --use-syslog option
 
 yaddns 1.0:
