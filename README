@@ -20,6 +20,16 @@ Usage
   * Launch yaddns like this:
      /usr/bin/yaddns -f /etc/yaddns.conf -p /var/run/yaddns.pid
 
+ - Reload config in runtime:
+     killall -SIGHUP yaddns
+
+ - Wake up yaddns and go proper action now in runtime:
+     killall -SIGUSR1 yaddns
+
+ - Unfreeze services (in case of freeze
+   following temporary dyndns server error) in runtime:
+     killall -SIGUSR2 yaddns
+
 Compilation tricks for developpers
 -------------------------------------------
 
