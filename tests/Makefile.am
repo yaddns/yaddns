@@ -1,3 +1,10 @@
+EXTRA_DIST = yatest.h \
+	yaddns.good.2.conf \
+	yaddns.good.conf \
+	yaddns.invalid.account2_has_invalid_service.conf \
+	yaddns.invalid.conf \
+	yaddns.invalid.unknown_service.conf
+
 TESTS = check_request check_cfgstr check_config check_account check_util
 
 check_PROGRAMS = $(TESTS)
