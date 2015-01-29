@@ -4,4 +4,5 @@ libservices_a_SOURCES = changeip.c \
 			dyndnsit.c \
 			no-ip.c \
 			ovh.c \
-			sitelutions.c
+			sitelutions.c \
+			duckdns.c
