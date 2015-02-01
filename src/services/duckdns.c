@@ -1,0 +1,152 @@
+/*
+ *  Yaddns - Yet Another ddns client
+ *  Copyright (C) 2008 Anthony Viallard <anthony.viallard@patatrac.info>
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
+#include "../service.h"
+#include "../request.h"
+#include "../util.h"
+#include "../log.h"
+
+/*
+ * https://duckdns.org/faqs.jsp
+ */
+
+#define DDNS_NAME "duckdns"
+#define DDNS_HOST "duckdns.org"
+#define DDNS_PORT 80
+
+static int ddns_write(const struct cfg_account *cfg,
+                      const char const *newwanip,
+                      struct request_buff *buff);
+
+static int ddns_read(struct request_buff *buff,
+                     struct rc_report *report);
+
+struct service duckdns_service = {
+	.name = DDNS_NAME,
+	.ipserv = DDNS_HOST,
+	.portserv = DDNS_PORT,
+	.make_query = ddns_write,
+	.read_resp = ddns_read
+};
+
+static struct {
+	const char *propcode;
+	const char *propcode_info;
+	int code;
+} rc_map[] = {
+        { .propcode = "KO",
+          .propcode_info = "An error occured.",
+          .code = up_account_error,
+        },
+        { .propcode = "OK",
+          .propcode_info = "DNS hostname update successful.",
+          .code = up_success,
+        },
+	{ NULL,	NULL, 0, }
+};
+
+static int ddns_write(const struct cfg_account *cfg,
+                      const char const *newwanip,
+                      struct request_buff *buff)
+{
+    int n;
+
+    n = snprintf(buff->data, sizeof(buff->data),
+                 "GET /update"
+                 "?domains=%s"
+                 "&token=%s"
+                 "&ip=%s"
+                 " HTTP/1.0\r\n"
+                 "Host: " DDNS_HOST "\r\n"
+                 "User-Agent: " PACKAGE "/" VERSION "\r\n"
+                 "Connection: close\r\n"
+                 "Pragma: no-cache\r\n\r\n",
+                 cfgstr_get(&(cfg->hostname)),
+                 cfgstr_get(&(cfg->passwd)),
+                 newwanip);
+    if(n < 0)
+    {
+            log_error("Unable to write data buffer");
+            return -1;
+    }
+
+    buff->data_size = (size_t)n;
+
+    return 0;
+}
+
+static int ddns_read(struct request_buff *buff,
+                     struct rc_report *report)
+{
+        char *str = NULL, *token = NULL, *saveptr = NULL;
+	int found = 0;
+	int n = 0;
+
+        for(str = buff->data;; str = NULL)
+        {
+               token = strtok_r(str, "\n", &saveptr);
+               if(token == NULL)
+               {
+                       break;
+               }
+
+               for (n = 0; rc_map[n].propcode != NULL; ++n)
+               {
+                       if (strstr(token, rc_map[n].propcode) != NULL)
+                       {
+                               report->code = rc_map[n].code;
+
+                               snprintf(report->proprio_return,
+                                        sizeof(report->proprio_return),
+                                        "%s", rc_map[n].propcode);
+
+                               snprintf(report->proprio_return_info,
+                                        sizeof(report->proprio_return_info),
+                                        "%s", rc_map[n].propcode_info);
+
+                               found = 1;
+                               break;
+                       }
+               }
+        }
+
+        if(!found)
+        {
+                log_error("Unknown return message received.");
+
+                report->code = up_unknown_error;
+
+                snprintf(report->proprio_return,
+                         sizeof(report->proprio_return),
+                         "unknown");
+
+                snprintf(report->proprio_return_info,
+                         sizeof(report->proprio_return_info),
+                         "Unknown return message received");
+        }
+
+	return 0;
+}
