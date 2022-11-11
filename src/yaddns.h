@@ -22,7 +22,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 
-struct in_addr wanip;
-short int have_wanip;
+extern struct in_addr wanip;
+extern short int have_wanip;
 
 #endif
