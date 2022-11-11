@@ -1,6 +1,6 @@
 /*
  *  Yaddns - Yet Another ddns client
- *  Copyright (C) 2009 Anthony Viallard <anthony.viallard@patatrac.info>
+ *  Copyright (C) 2009 Anthony Viallard <anthony.viallard@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
