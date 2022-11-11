@@ -1,3 +1,6 @@
+yaddns 1.1.2:
+        * fix another compilation warnings/errors;
+
 yaddns 1.1.1:
         * fix various compilation warnings/errors;
         * correct mail address;
