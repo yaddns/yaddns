@@ -38,7 +38,7 @@
 #define DDNS_PORT 80
 
 static int ddns_write(const struct cfg_account *cfg,
-                      const char const *newwanip,
+                      const char * const newwanip,
                       struct request_buff *buff);
 
 static int ddns_read(struct request_buff *buff,
@@ -53,7 +53,7 @@ struct service changeip_service = {
 };
 
 static int ddns_write(const struct cfg_account *cfg,
-                      const char const *newwanip,
+                      const char * const newwanip,
                       struct request_buff *buff)
 {
 	char buf[256];

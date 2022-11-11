@@ -41,13 +41,13 @@ struct rc_report {
 };
 
 struct service {
-	const char const *name;
-	const char const *ipserv;
+	const char * const name;
+	const char * const ipserv;
         short unsigned int portserv;
 	int (*ctor) (void);
 	int (*dtor) (void);
 	int (*make_query) (const struct cfg_account *cfg,
-                           const char const *newwanip,
+                           const char * const newwanip,
                            struct request_buff *buff);
 	int (*read_resp) (struct request_buff *buff,
                           struct rc_report *report);
