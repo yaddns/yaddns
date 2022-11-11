@@ -11,6 +11,8 @@ extern struct service ovh_service;
 extern struct service sitelutions_service;
 extern struct service duckdns_service;
 
+struct list_head service_list;
+
 void services_populate_list(void)
 {
 	INIT_LIST_HEAD(&service_list);

@@ -19,7 +19,7 @@
 #ifndef _YADDNS_SERVICES_H_
 #define _YADDNS_SERVICES_H_
 
-struct list_head service_list;
+extern struct list_head service_list;
 
 void services_populate_list(void);
 
